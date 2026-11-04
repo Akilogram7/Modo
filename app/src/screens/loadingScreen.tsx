@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Dimensions, Easing, Image, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, gradientStops } from '../mainTheme';
+import { colors, gradientStops } from '../theme';
 
 const { width, height } = Dimensions.get('window');
 const SIZE = Math.sqrt(width * width + height * height) * 2;

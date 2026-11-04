@@ -3,7 +3,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensio
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, gradientStops } from '../mainTheme';
+import { colors, gradientStops, gradientDirection, fonts, shadows } from '../theme';
 
 // Colours only used on this screen
 const CARD = {
@@ -11,18 +11,7 @@ const CARD = {
   sleep: '#D4709A',
   commute: '#7CC4A4',
   create: '#9B8AE0',
-  achievements: '#F5A623',
-};
-
-// Fonts
-const FONT = {
-  nunito: 'Nunito_700Bold',
-  baloo: 'Baloo2_700Bold',
-};
-
-// Button shadow
-const SHADOW = {
-  boxShadow: '0px 4px 4px rgba(0,0,0,0.25), inset 0px 4px 4px rgba(0,0,0,0.25)',
+  achievements: '#F5A623'
 };
 
 type Props = {
@@ -70,13 +59,15 @@ export default function HomeScreen({
     <LinearGradient
       colors={[colors.gradientLight, colors.gradientMain]}
       locations={[...gradientStops]}
+      start={gradientDirection.start}
+      end={gradientDirection.end}
       style={styles.bg}
     >
       {/* Background */}
       <Image
         source={require('../../assets/HomePage/Cloud Background.png')}
         style={styles.backgroundImage}
-        resizeMode="contain"
+        resizeMode="stretch"
         pointerEvents="none"
       />
 
@@ -207,10 +198,10 @@ const styles = StyleSheet.create({
 
   backgroundImage: {
     position: 'absolute',
-    width: '100%',
-    height: '100%',
     top: 0,
     left: 0,
+    width: '100%',
+    aspectRatio: 786 / 1602,
   },
 
   scroll: {
@@ -224,19 +215,19 @@ const styles = StyleSheet.create({
 
   hello: {
     fontSize: 20,
-    fontFamily: FONT.nunito,
+    fontFamily: fonts.bodyBold,
     color: colors.text,
   },
 
   name: {
     fontSize: 26,
-    fontFamily: FONT.nunito,
+    fontFamily: fonts.bodyBold,
     color: colors.text,
   },
 
   sub: {
     fontSize: 14,
-    fontFamily: FONT.nunito,
+    fontFamily: fonts.bodyBold,
     color: colors.text,
     marginTop: 4,
   },
@@ -260,7 +251,7 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: 34,
-    fontFamily: FONT.baloo,
+    fontFamily: fonts.headingBold,
     color: colors.text,
     textAlign: 'center',
     marginTop: 4,
@@ -281,7 +272,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     paddingBottom: 10,
-    ...SHADOW,
+    ...shadows.raised,
   },
 
   cardImg: {
@@ -303,7 +294,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     lineHeight: 24,
-    fontFamily: FONT.baloo,
+    fontFamily: fonts.headingBold,
     letterSpacing: 0.5,
   },
 
@@ -315,7 +306,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    ...SHADOW,
+    ...shadows.raised
   },
 
   bannerImg: {
@@ -329,7 +320,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 22,
     lineHeight: 26,
-    fontFamily: FONT.baloo,
+    fontFamily: fonts.headingBold,
   },
 
   pressed: {
@@ -337,3 +328,4 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
 });
+
