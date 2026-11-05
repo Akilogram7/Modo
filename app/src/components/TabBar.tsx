@@ -2,6 +2,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, fonts, shadows } from '../theme';
 
 const TABS = [
   { key: 'home', label: 'Home', icon: 'home' },
@@ -52,11 +53,11 @@ export default function TabBar({
 const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
-    backgroundColor: '#F08A3C',
+    backgroundColor: colors.gradientMain,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 10,
-    boxShadow: 'inset 0px 4px 4px rgba(0,0,0,0.25)',
+    ...shadows.inset,
   },
 
   tab: {
@@ -67,7 +68,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     lineHeight: 16,
-    fontFamily: 'Baloo2_600SemiBold',
+    fontFamily: fonts.heading,
     marginTop: 2,
   },
 });
