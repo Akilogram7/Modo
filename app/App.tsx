@@ -18,6 +18,7 @@ import {
 import LoadingScreen from './src/screens/loadingScreen';
 import HomeScreen from './src/screens/homeScreen';
 import TabBar, { TabKey } from './src/components/TabBar';
+import CreateModeScreen, { CHARACTERS } from './src/screens/createModeScreen';
 
 const IMAGES = [
   require('./assets/HomePage/ModoStudy.png'),
@@ -39,8 +40,11 @@ export default function App() {
   });
 
   const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [loadingCreate, setLoadingCreate] = useState(false);
+const [charsReady, setCharsReady] = useState(false);
   const [minTimePassed, setMinTimePassed] = useState(false);
   const [tab, setTab] = useState<TabKey>('home');
+  const [screen, setScreen] = useState<'home' | 'createMode'>('home');
 
   useEffect(() => {
     Asset.loadAsync(IMAGES)
@@ -52,32 +56,58 @@ export default function App() {
     return () => clearTimeout(t);
   }, []);
 
-  // Loading screen stays until fonts, images and minimum time are ready
+  // Loading screen loading up all assets
   if (!fontsLoaded || !imagesLoaded || !minTimePassed) {
     return <LoadingScreen />;
   }
 
-  return (
-    <SafeAreaProvider>
-      <View style={{ flex: 1 }}>
-        <HomeScreen
-          onModePress={(mode) => console.log('open mode:', mode)}
-          onCreateMode={() => console.log('create mode')}
-          onAchievements={() => console.log('achievements')}
-          onSettings={() => console.log('open settings')}
-        />
+    async function openCreateMode() {
+    if (charsReady) {
+      setScreen('createMode');
+      return;
+    }
+    setLoadingCreate(true);
+    try {
+      await Promise.all([
+        Asset.loadAsync(CHARACTERS),
+        new Promise((r) => setTimeout(r, 1500)), // minimum time so the loading screen doesn't flash
+      ]);
+    } catch (e) {
+      console.warn('character preload failed', e);
+    }
+    setCharsReady(true);
+    setLoadingCreate(false);
+    setScreen('createMode');
+  }
 
-        <View
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
+  if (loadingCreate) {
+    return <LoadingScreen />;
+  }
+
+ return (
+  <SafeAreaProvider>
+    <View style={{ flex: 1 }}>
+      {screen === 'home' ? (
+        <>
+          <HomeScreen
+            onModePress={(mode) => console.log('open mode:', mode)}
+            onCreateMode={openCreateMode}
+            onAchievements={() => console.log('achievements')}
+          />
+          <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+            <TabBar active={tab} onChange={setTab} />
+          </View>
+        </>
+      ) : (
+        <CreateModeScreen
+          onBack={() => setScreen('home')}
+          onCreate={(mode) => {
+            console.log('new mode:', mode);
+            setScreen('home');
           }}
-        >
-          <TabBar active={tab} onChange={setTab} />
-        </View>
-      </View>
-    </SafeAreaProvider>
-  );
+        />
+      )}
+    </View>
+  </SafeAreaProvider>
+);
 }

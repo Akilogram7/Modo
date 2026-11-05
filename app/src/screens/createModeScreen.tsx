@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts, shadows, backgroundColors } from '../theme';
 
-const CHARACTERS = [
+export const CHARACTERS = [
   require('../../assets/createMode/ModoWave.png'),
   require('../../assets/createMode/ModoWink.png'),
   require('../../assets/createMode/ModoExcited.png'),
