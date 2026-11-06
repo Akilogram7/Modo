@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -19,6 +18,8 @@ import LoadingScreen from './src/screens/loadingScreen';
 import HomeScreen from './src/screens/homeScreen';
 import TabBar, { TabKey } from './src/components/TabBar';
 import CreateModeScreen, { CHARACTERS } from './src/screens/createModeScreen';
+import { AuthProvider, useAuth } from './src/providers/AuthProvider';
+import { AuthGate } from './src/components/AuthGate';
 
 const IMAGES = [
   require('./assets/HomePage/ModoStudy.png'),
@@ -30,7 +31,19 @@ const IMAGES = [
   require('./assets/HomePage/Plus.png'),
 ];
 
+// AuthProvider wraps everything so any screen can use useAuth()
 export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
+
+// This is your old App, just renamed
+function AppContent() {
+  const { isLoading: authLoading } = useAuth();
+
   const [fontsLoaded] = useFonts({
     DynaPuff_400Regular,
     Nunito_400Regular,
@@ -41,7 +54,7 @@ export default function App() {
 
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [loadingCreate, setLoadingCreate] = useState(false);
-const [charsReady, setCharsReady] = useState(false);
+  const [charsReady, setCharsReady] = useState(false);
   const [minTimePassed, setMinTimePassed] = useState(false);
   const [tab, setTab] = useState<TabKey>('home');
   const [screen, setScreen] = useState<'home' | 'createMode'>('home');
@@ -56,12 +69,12 @@ const [charsReady, setCharsReady] = useState(false);
     return () => clearTimeout(t);
   }, []);
 
-  // Loading screen loading up all assets
-  if (!fontsLoaded || !imagesLoaded || !minTimePassed) {
+  // Loading screen while assets load AND while we check if someone's already logged in
+  if (!fontsLoaded || !imagesLoaded || !minTimePassed || authLoading) {
     return <LoadingScreen />;
   }
 
-    async function openCreateMode() {
+  async function openCreateMode() {
     if (charsReady) {
       setScreen('createMode');
       return;
@@ -84,30 +97,33 @@ const [charsReady, setCharsReady] = useState(false);
     return <LoadingScreen />;
   }
 
- return (
-  <SafeAreaProvider>
-    <View style={{ flex: 1 }}>
-      {screen === 'home' ? (
-        <>
-          <HomeScreen
-            onModePress={(mode) => console.log('open mode:', mode)}
-            onCreateMode={openCreateMode}
-            onAchievements={() => console.log('achievements')}
-          />
-          <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
-            <TabBar active={tab} onChange={setTab} />
-          </View>
-        </>
-      ) : (
-        <CreateModeScreen
-          onBack={() => setScreen('home')}
-          onCreate={(mode) => {
-            console.log('new mode:', mode);
-            setScreen('home');
-          }}
-        />
-      )}
-    </View>
-  </SafeAreaProvider>
-);
+  return (
+    <SafeAreaProvider>
+      {/* Logged out: shows sign in / sign up. Logged in: shows everything inside. */}
+      <AuthGate>
+        <View style={{ flex: 1 }}>
+          {screen === 'home' ? (
+            <>
+              <HomeScreen
+                onModePress={(mode) => console.log('open mode:', mode)}
+                onCreateMode={openCreateMode}
+                onAchievements={() => console.log('achievements')}
+              />
+              <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+                <TabBar active={tab} onChange={setTab} />
+              </View>
+            </>
+          ) : (
+            <CreateModeScreen
+              onBack={() => setScreen('home')}
+              onCreate={(mode) => {
+                console.log('new mode:', mode);
+                setScreen('home');
+              }}
+            />
+          )}
+        </View>
+      </AuthGate>
+    </SafeAreaProvider>
+  );
 }

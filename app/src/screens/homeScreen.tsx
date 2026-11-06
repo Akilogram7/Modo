@@ -1,9 +1,10 @@
 
-import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Button, Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, gradientStops, gradientDirection, fonts, shadows } from '../theme';
+import { useAuth } from '../providers/AuthProvider';
 
 // Colours only used on this screen
 const CARD = {
@@ -44,18 +45,22 @@ const MODES = [
 ] as const;
 
 export default function HomeScreen({
-  name = 'Hemanti',
+  name = 'there',
   onModePress,
   onCreateMode,
   onAchievements,
   onSettings,
 }: Props) {
+  const { signOut, user } = useAuth();
+  const displayName = user?.user_metadata?.display_name ?? name;
   const { width } = useWindowDimensions();
 
   const charW = Math.min(width * 0.55, 260);
   const charH = (charW * 217) / 250;
 
+
   return (
+    
     <LinearGradient
       colors={[colors.gradientLight, colors.gradientMain]}
       locations={[...gradientStops]}
@@ -93,7 +98,7 @@ export default function HomeScreen({
 
             <View>
               <Text style={styles.hello}>Hello,</Text>
-              <Text style={styles.name}>{name}</Text>
+              <Text style={styles.name}>{displayName}</Text>
               <Text style={styles.sub}>
                 What are we{'\n'}in the mode for?
               </Text>
@@ -185,9 +190,14 @@ export default function HomeScreen({
               color="#fff"
             />
           </Pressable>
+          {/* Log out */}
+          <View style={{ marginTop: 20 }}>
+            <Button title="Log out" onPress={signOut} />
+          </View>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
+    
   );
 }
 
