@@ -5,7 +5,7 @@ import { AppState, Platform } from 'react-native'
  
 // Same env vars you already have in your .env
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_KEY!
+const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
  
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
