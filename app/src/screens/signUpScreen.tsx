@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { supabase } from '../../lib/supabase'
-import { AuthButton, AuthField, authStyles } from '../components/auth-ui'
+import { AuthButton, AuthCard, AuthField, authStyles } from '../components/auth-ui'
+import AuthBackground from '../components/AuthBackground'
 
 type Props = {
   onSwitchToSignIn: () => void
@@ -55,19 +56,17 @@ export default function SignUpScreen({ onSwitchToSignIn }: Props) {
     // AuthGate moves them into the app automatically.
   }
 
-  return (
-    <View style={authStyles.screen}>
-      <KeyboardAvoidingView
-        style={authStyles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+return (
+  <AuthBackground>
+    <KeyboardAvoidingView
+      style={authStyles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView
+        contentContainerStyle={[authStyles.inner, { paddingBottom: 120 }]}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView
-          contentContainerStyle={authStyles.inner}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text style={authStyles.wordmark}>Modo</Text>
-          <Text style={authStyles.tagline}>Make an account to start building your modes.</Text>
-
+        <AuthCard title="CREATE ACCOUNT">
           <AuthField
             label="Name"
             value={name}
@@ -81,7 +80,7 @@ export default function SignUpScreen({ onSwitchToSignIn }: Props) {
             label="Email"
             value={email}
             onChangeText={setEmail}
-            placeholder="you@example.com"
+            placeholder="modo@modo.com"
             autoCapitalize="none"
             autoComplete="email"
             keyboardType="email-address"
@@ -92,17 +91,17 @@ export default function SignUpScreen({ onSwitchToSignIn }: Props) {
             label="Password"
             value={password}
             onChangeText={setPassword}
-            placeholder="At least 6 characters"
+            placeholder="choose wisely"
             secureTextEntry
             autoComplete="new-password"
             textContentType="newPassword"
           />
 
           <AuthField
-            label="Confirm password"
+            label="Confirm Password"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
-            placeholder="Type it again"
+            placeholder="don't forget it"
             secureTextEntry
             autoComplete="new-password"
             textContentType="newPassword"
@@ -112,16 +111,17 @@ export default function SignUpScreen({ onSwitchToSignIn }: Props) {
           {error && <Text style={authStyles.error}>{error}</Text>}
           {notice && <Text style={authStyles.notice}>{notice}</Text>}
 
-          <AuthButton title="Create account" onPress={handleSignUp} loading={loading} />
+          <AuthButton title="WELCOME!" onPress={handleSignUp} loading={loading} />
 
           <View style={authStyles.switchRow}>
-            <Text style={authStyles.switchText}>Already have an account? </Text>
+            <Text style={authStyles.switchText}>Already been here before? </Text>
             <Pressable onPress={onSwitchToSignIn} accessibilityRole="link" hitSlop={8}>
-              <Text style={authStyles.switchLink}>Log in</Text>
+              <Text style={authStyles.switchLink}>Log In!</Text>
             </Pressable>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
-  )
+        </AuthCard>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  </AuthBackground>
+)
 }
