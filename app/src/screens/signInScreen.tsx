@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { supabase } from '../../lib/supabase'
-import { AuthButton, AuthField, authStyles } from '../components/auth-ui'
+import { AuthButton, AuthCard, AuthField, authStyles } from '../components/auth-ui'
+import AuthBackground from '../components/AuthBackground'
 
 type Props = {
   onSwitchToSignUp: () => void
@@ -36,24 +37,22 @@ export default function SignInScreen({ onSwitchToSignUp }: Props) {
     // the new session and AuthGate switches to the main app by itself.
   }
 
-  return (
-    <View style={authStyles.screen}>
-      <KeyboardAvoidingView
-        style={authStyles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+return (
+  <AuthBackground>
+    <KeyboardAvoidingView
+      style={authStyles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView
+        contentContainerStyle={[authStyles.inner, { paddingBottom: 120 }]}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView
-          contentContainerStyle={authStyles.inner}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text style={authStyles.wordmark}>Modo</Text>
-          <Text style={authStyles.tagline}>Log in to get back to your modes.</Text>
-
+        <AuthCard title="WELCOME">
           <AuthField
             label="Email"
             value={email}
             onChangeText={setEmail}
-            placeholder="you@example.com"
+            placeholder="modo@modo.com"
             autoCapitalize="none"
             autoComplete="email"
             keyboardType="email-address"
@@ -64,7 +63,7 @@ export default function SignInScreen({ onSwitchToSignUp }: Props) {
             label="Password"
             value={password}
             onChangeText={setPassword}
-            placeholder="Your password"
+            placeholder="Shh..."
             secureTextEntry
             autoComplete="password"
             textContentType="password"
@@ -73,16 +72,17 @@ export default function SignInScreen({ onSwitchToSignUp }: Props) {
 
           {error && <Text style={authStyles.error}>{error}</Text>}
 
-          <AuthButton title="Log in" onPress={handleSignIn} loading={loading} />
+          <AuthButton title="LOG IN" onPress={handleSignIn} loading={loading} />
 
           <View style={authStyles.switchRow}>
-            <Text style={authStyles.switchText}>New to Modo? </Text>
+            <Text style={authStyles.switchText}>New here? </Text>
             <Pressable onPress={onSwitchToSignUp} accessibilityRole="link" hitSlop={8}>
-              <Text style={authStyles.switchLink}>Create an account</Text>
+              <Text style={authStyles.switchLink}>Create an account!</Text>
             </Pressable>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
-  )
+        </AuthCard>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  </AuthBackground>
+)
 }

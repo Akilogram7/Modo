@@ -11,7 +11,7 @@ export function AuthGate({ children }: PropsWithChildren) {
   const { session, isLoading } = useAuth()
   const [showSignUp, setShowSignUp] = useState(false)
 
-  // After loggin in, let logging out lead to the log out screen
+  // After logging in, let logging out lead to the log out screen
   useEffect(() => {
     if (session) setShowSignUp(false)
   }, [session])

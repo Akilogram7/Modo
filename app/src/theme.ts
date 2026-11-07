@@ -7,12 +7,12 @@ export const colors = {
   text: '#1A1A1A',
 };
 
-//linear gradient direction
-export const gradientStops = [0.32, 0.61] as const;
+//linear gradient
+export const gradientStops = [0.36, 0.48] as const;
 
 export const gradientDirection = {
-  start: { x: 0, y: 0 },
-  end: { x: 0, y: 1 },
+  start: { x: 1, y: 0 },
+  end: { x: 0.22, y: 0.735 },
 };
 
 // exact names from useFonts in App.tsx
@@ -39,6 +39,6 @@ export const shadows = {
 // the 12 background colours users can pick for their modes
 export const backgroundColors = [
   '#A59BE7', '#6677B2', '#D982A5', '#9FC5B0',
-  '#000000', '#E8B94F', '#E9933A', '#B7A18A',
+  '#000000', '#E8B94F', '#FFB67E', '#B7A18A',
   '#D39984', '#55415F', '#E84F4F', '#499496',
 ];
