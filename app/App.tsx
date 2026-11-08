@@ -18,6 +18,7 @@ import LoadingScreen from './src/screens/loadingScreen';
 import HomeScreen from './src/screens/homeScreen';
 import TabBar, { TabKey } from './src/components/TabBar';
 import CreateModeScreen, { CHARACTERS } from './src/screens/createModeScreen';
+import ModeScreen from './src/screens/modeScreen';
 import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { AuthGate } from './src/components/AuthGate';
 
@@ -29,6 +30,7 @@ const IMAGES = [
   require('./assets/HomePage/ClassicModo 1.png'),
   require('./assets/HomePage/Cloud Background.png'),
   require('./assets/HomePage/Plus.png'),
+  require('./assets/createMode/ModoStudy.png'), // used on the Study mode page
 ];
 
 // AuthProvider wraps everything so any screen can use useAuth()
@@ -40,7 +42,6 @@ export default function App() {
   );
 }
 
-// This is your old App, just renamed
 function AppContent() {
   const { isLoading: authLoading } = useAuth();
 
@@ -57,7 +58,8 @@ function AppContent() {
   const [charsReady, setCharsReady] = useState(false);
   const [minTimePassed, setMinTimePassed] = useState(false);
   const [tab, setTab] = useState<TabKey>('home');
-  const [screen, setScreen] = useState<'home' | 'createMode'>('home');
+  const [screen, setScreen] = useState<'home' | 'mode' | 'createMode'>('home');
+  const [createFrom, setCreateFrom] = useState<'home' | 'mode'>('home'); // where "Go Back" returns to
 
   useEffect(() => {
     Asset.loadAsync(IMAGES)
@@ -74,22 +76,22 @@ function AppContent() {
     return <LoadingScreen />;
   }
 
-  async function openCreateMode() {
-    if (charsReady) {
-      setScreen('createMode');
-      return;
+  // opens the create mode page (loads the Modo characters the first time)
+  async function openCreateMode(from: 'home' | 'mode') {
+    setCreateFrom(from);
+    if (!charsReady) {
+      setLoadingCreate(true);
+      try {
+        await Promise.all([
+          Asset.loadAsync(CHARACTERS),
+          new Promise((r) => setTimeout(r, 1500)), // minimum time so the loading screen doesn't flash
+        ]);
+      } catch (e) {
+        console.warn('character preload failed', e);
+      }
+      setCharsReady(true);
+      setLoadingCreate(false);
     }
-    setLoadingCreate(true);
-    try {
-      await Promise.all([
-        Asset.loadAsync(CHARACTERS),
-        new Promise((r) => setTimeout(r, 1500)), // minimum time so the loading screen doesn't flash
-      ]);
-    } catch (e) {
-      console.warn('character preload failed', e);
-    }
-    setCharsReady(true);
-    setLoadingCreate(false);
     setScreen('createMode');
   }
 
@@ -102,20 +104,32 @@ function AppContent() {
       {/* Logged out: shows sign in / sign up. Logged in: shows everything inside. */}
       <AuthGate>
         <View style={{ flex: 1 }}>
-          {screen === 'home' ? (
+          {screen === 'home' && (
             <>
               <HomeScreen
-                onModePress={(mode) => console.log('open mode:', mode)}
-                onCreateMode={openCreateMode}
+                onModePress={(mode) => {
+                  if (mode === 'study') setScreen('mode');
+                  else console.log('open mode:', mode);
+                }}
+                onCreateMode={() => openCreateMode('home')}
                 onAchievements={() => console.log('achievements')}
               />
               <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
                 <TabBar active={tab} onChange={setTab} />
               </View>
             </>
-          ) : (
+          )}
+
+          {screen === 'mode' && (
+            <ModeScreen
+              onChangeSettings={() => openCreateMode('mode')}
+              onEnd={() => setScreen('home')}
+            />
+          )}
+
+          {screen === 'createMode' && (
             <CreateModeScreen
-              onBack={() => setScreen('home')}
+              onBack={() => setScreen(createFrom)}
               onCreate={(mode) => {
                 console.log('new mode:', mode);
                 setScreen('home');
