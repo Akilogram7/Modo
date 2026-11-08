@@ -9,6 +9,9 @@ const STUDY_MODO = require('../../assets/createMode/ModoStudy.png');
 // Study mode uses one of the colours from theme.ts (index 1 = the blue)
 const BASE = backgroundColors[1];
 
+// title, checkboxes and buttons (from Figma, not in theme.ts)
+const ACCENT = '#1D2C6E';
+
 // blends a colour toward white
 function lighten(hex: string, amount: number) {
   const n = parseInt(hex.slice(1), 16);
@@ -16,18 +19,11 @@ function lighten(hex: string, amount: number) {
   return `rgb(${mix((n >> 16) & 255)},${mix((n >> 8) & 255)},${mix(n & 255)})`;
 }
 
-// blends a colour toward black
-function darken(hex: string, amount: number) {
-  const n = parseInt(hex.slice(1), 16);
-  const mix = (c: number) => Math.round(c * (1 - amount));
-  return `rgb(${mix((n >> 16) & 255)},${mix((n >> 8) & 255)},${mix(n & 255)})`;
-}
-
-// every colour on this page comes from BASE
+// the rest of the colours on this page come from BASE
 const COLORS = {
   gradientTop: lighten(BASE, 0.55), // light end of the background
   gradientBottom: BASE, // main colour
-  accent: darken(BASE, 0.5), // title, checkboxes and buttons
+  accent: ACCENT,
   light: lighten(BASE, 0.92), // labels, timer, checked boxes and button text
 };
 
@@ -35,7 +31,7 @@ function CheckRow({ label, checked }: { label: string; checked: boolean }) {
   return (
     <View style={styles.row}>
       <View style={[styles.box, { backgroundColor: checked ? COLORS.light : COLORS.accent }]}>
-        {checked && <Ionicons name="checkmark" size={20} color={COLORS.accent} />}
+        {checked && <Ionicons name="checkmark" size={24} color={COLORS.accent} />}
       </View>
       <Text style={styles.rowText}>{label}</Text>
     </View>
@@ -97,25 +93,27 @@ export default function ModeScreen({ onChangeSettings, onEnd }: Props) {
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 24 },
   title: {
-    fontSize: 34,
+    fontSize: 50,
+    lineHeight: 60,
     fontFamily: fonts.headingBold,
     color: COLORS.accent,
     textAlign: 'center',
     marginBottom: 8,
   },
-  list: { marginTop: 24, paddingHorizontal: 40, rowGap: 14 },
+  list: { marginTop: 24, paddingHorizontal: 20, rowGap: 14 },
   row: { flexDirection: 'row', alignItems: 'center' },
   box: {
-    width: 26,
-    height: 26,
-    borderRadius: 7,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     borderWidth: 2,
     borderColor: COLORS.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowText: {
-    fontSize: 16,
+    fontSize: 25,
+    lineHeight: 32,
     fontFamily: fonts.headingBold,
     color: COLORS.light,
     letterSpacing: 0.5,
@@ -132,10 +130,16 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: COLORS.accent,
     borderRadius: 30,
-    paddingVertical: 10,
-    paddingHorizontal: 40,
+    paddingVertical: 8,
+    paddingHorizontal: 24,
     ...shadows.raised,
   },
-  buttonText: { color: COLORS.light, fontSize: 20, fontFamily: fonts.headingBold, letterSpacing: 0.5 },
+  buttonText: {
+    color: COLORS.light,
+    fontSize: 30,
+    lineHeight: 50,
+    fontFamily: fonts.headingBold,
+    letterSpacing: 0.5,
+  },
   pressed: { transform: [{ scale: 0.97 }], opacity: 0.9 },
 });
