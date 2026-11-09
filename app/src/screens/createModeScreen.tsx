@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fonts, shadows, backgroundColors } from '../theme';
+import { fonts, shadows, backgroundColors, gradientStops, gradientDirection } from '../theme';
 
 export const CHARACTERS = [
   require('../../assets/createMode/ModoWave.png'),
@@ -143,9 +143,9 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
   return (
     <LinearGradient
       colors={[lighten(color, 0.46), color]}
-      locations={[0.36, 0.48]}
-      start={{ x: 1, y: 0 }}
-      end={{ x: 0.22, y: 0.735 }}
+      locations={[...gradientStops]}
+      start={gradientDirection.start}
+      end={gradientDirection.end}
       style={{ flex: 1 }}
     >
       <ScrollView
