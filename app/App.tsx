@@ -19,6 +19,8 @@ import HomeScreen from './src/screens/homeScreen';
 import TabBar, { TabKey } from './src/components/TabBar';
 import CreateModeScreen, { CHARACTERS } from './src/screens/createModeScreen';
 import ProfileScreen from './src/screens/profileScreen';
+import PresetModeScreen, { type PresetKey } from './src/screens/presetModes';
+import AchievementsScreen from './src/screens/achievementsScreen';
 import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { AuthGate } from './src/components/AuthGate';
 
@@ -30,6 +32,9 @@ const IMAGES = [
   require('./assets/HomePage/ClassicModo 1.png'),
   require('./assets/HomePage/Cloud Background.png'),
   require('./assets/HomePage/Plus.png'),
+  require('./assets/createMode/ModoStudy.png'),
+  require('./assets/createMode/ModoSleep.png'),
+  require('./assets/createMode/ModoRun.png'),
 ];
 
 // AuthProvider wraps everything so any screen can use useAuth()
@@ -57,7 +62,12 @@ function AppContent() {
   const [charsReady, setCharsReady] = useState(false);
   const [minTimePassed, setMinTimePassed] = useState(false);
   const [tab, setTab] = useState<TabKey>('home');
-  const [screen, setScreen] = useState<'home' | 'createMode' | 'profile'>('home');
+  const [screen, setScreen] = useState<
+    'home' | 'mode' | 'createMode' | 'achievements' | 'profile'
+  >('home');
+
+  const [preset, setPreset] = useState<PresetKey>('study');
+  const [createFrom, setCreateFrom] = useState<'home' | 'mode'>('home');
 
   useEffect(() => {
     Asset.loadAsync(IMAGES)
@@ -90,22 +100,25 @@ function AppContent() {
     if (next === 'profile') setScreen('profile');
   }
 
-  async function openCreateMode() {
-    if (charsReady) {
-      setScreen('createMode');
-      return;
+  async function openCreateMode(from: 'home' | 'mode') {
+    setCreateFrom(from);
+
+    if (!charsReady) {
+      setLoadingCreate(true);
+
+      try {
+        await Promise.all([
+          Asset.loadAsync(CHARACTERS),
+          new Promise((r) => setTimeout(r, 1500)),
+        ]);
+      } catch (e) {
+        console.warn('character preload failed', e);
+      }
+
+      setCharsReady(true);
+      setLoadingCreate(false);
     }
-    setLoadingCreate(true);
-    try {
-      await Promise.all([
-        Asset.loadAsync(CHARACTERS),
-        new Promise((r) => setTimeout(r, 1500)), // minimum time so the loading screen doesn't flash
-      ]);
-    } catch (e) {
-      console.warn('character preload failed', e);
-    }
-    setCharsReady(true);
-    setLoadingCreate(false);
+
     setScreen('createMode');
   }
 
@@ -120,9 +133,23 @@ function AppContent() {
         <View style={{ flex: 1 }}>
           {screen === 'home' && (
             <HomeScreen
-              onModePress={(mode) => console.log('open mode:', mode)}
-              onCreateMode={openCreateMode}
-              onAchievements={() => console.log('achievements')}
+              onModePress={(mode) => {
+                setPreset(mode);
+                setScreen('mode');
+              }}
+              onCreateMode={() => openCreateMode('home')}
+              onAchievements={() => setScreen('achievements')}
+            />
+          )}
+
+          {screen === 'mode' && (
+            <PresetModeScreen
+              mode={preset}
+              onChangeSettings={() => openCreateMode('mode')}
+              onEnd={() => {
+                setTab('home');
+                setScreen('home');
+              }}
             />
           )}
 
@@ -132,17 +159,28 @@ function AppContent() {
 
           {screen === 'createMode' && (
             <CreateModeScreen
-              onBack={() => setScreen('home')}
+              onBack={() => setScreen(createFrom)}
               onCreate={(mode) => {
                 console.log('new mode:', mode);
                 setScreen('home');
+                setTab('home');
               }}
             />
           )}
 
-          {/* Tab bar shows on home and profile, but not while creating a mode */}
-          {screen !== 'createMode' && (
-            <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+          {screen === 'achievements' && (
+            <AchievementsScreen onBack={() => setScreen('home')} />
+          )}
+
+          {(screen === 'home' || screen === 'profile') && (
+            <View
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}
+            >
               <TabBar active={tab} onChange={goToTab} />
             </View>
           )}
