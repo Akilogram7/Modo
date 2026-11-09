@@ -51,7 +51,7 @@ export default function HomeScreen({
   onAchievements,
   onSettings,
 }: Props) {
-  const { signOut, user } = useAuth();
+  const { user } = useAuth();
   const displayName = user?.user_metadata?.display_name ?? name;
   const { width } = useWindowDimensions();
 
@@ -190,10 +190,6 @@ export default function HomeScreen({
               color="#fff"
             />
           </Pressable>
-          {/* Log out */}
-          <View style={{ marginTop: 20 }}>
-            <Button title="Log out" onPress={signOut} />
-          </View>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>

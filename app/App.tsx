@@ -18,8 +18,7 @@ import LoadingScreen from './src/screens/loadingScreen';
 import HomeScreen from './src/screens/homeScreen';
 import TabBar, { TabKey } from './src/components/TabBar';
 import CreateModeScreen, { CHARACTERS } from './src/screens/createModeScreen';
-import PresetModeScreen, { type PresetKey } from './src/screens/presetModes';
-import AchievementsScreen from './src/screens/achievementsScreen';
+import ProfileScreen from './src/screens/profileScreen';
 import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { AuthGate } from './src/components/AuthGate';
 
@@ -31,10 +30,6 @@ const IMAGES = [
   require('./assets/HomePage/ClassicModo 1.png'),
   require('./assets/HomePage/Cloud Background.png'),
   require('./assets/HomePage/Plus.png'),
-  // used on the preset mode pages
-  require('./assets/createMode/ModoStudy.png'),
-  require('./assets/createMode/ModoSleep.png'),
-  require('./assets/createMode/ModoRun.png'),
 ];
 
 // AuthProvider wraps everything so any screen can use useAuth()
@@ -47,7 +42,7 @@ export default function App() {
 }
 
 function AppContent() {
-  const { isLoading: authLoading } = useAuth();
+  const { isLoading: authLoading, session } = useAuth();
 
   const [fontsLoaded] = useFonts({
     DynaPuff_400Regular,
@@ -62,9 +57,7 @@ function AppContent() {
   const [charsReady, setCharsReady] = useState(false);
   const [minTimePassed, setMinTimePassed] = useState(false);
   const [tab, setTab] = useState<TabKey>('home');
-  const [screen, setScreen] = useState<'home' | 'mode' | 'createMode' | 'achievements'>('home');
-  const [preset, setPreset] = useState<PresetKey>('study'); // which preset page is open
-  const [createFrom, setCreateFrom] = useState<'home' | 'mode'>('home'); // where "Go Back" returns to
+  const [screen, setScreen] = useState<'home' | 'createMode' | 'profile'>('home');
 
   useEffect(() => {
     Asset.loadAsync(IMAGES)
@@ -76,27 +69,43 @@ function AppContent() {
     return () => clearTimeout(t);
   }, []);
 
+  // When someone logs out, go back to home so the next person
+  // who logs in doesn't land on the old profile screen
+  useEffect(() => {
+    if (!session) {
+      setTab('home');
+      setScreen('home');
+    }
+  }, [session]);
+
   // Loading screen while assets load AND while we check if someone's already logged in
   if (!fontsLoaded || !imagesLoaded || !minTimePassed || authLoading) {
     return <LoadingScreen />;
   }
 
-  // opens the create mode page (loads the Modo characters the first time)
-  async function openCreateMode(from: 'home' | 'mode') {
-    setCreateFrom(from);
-    if (!charsReady) {
-      setLoadingCreate(true);
-      try {
-        await Promise.all([
-          Asset.loadAsync(CHARACTERS),
-          new Promise((r) => setTimeout(r, 1500)), // minimum time so the loading screen doesn't flash
-        ]);
-      } catch (e) {
-        console.warn('character preload failed', e);
-      }
-      setCharsReady(true);
-      setLoadingCreate(false);
+  // Tapping a tab highlights it AND switches to that screen
+  function goToTab(next: TabKey) {
+    setTab(next);
+    if (next === 'home') setScreen('home');
+    if (next === 'profile') setScreen('profile');
+  }
+
+  async function openCreateMode() {
+    if (charsReady) {
+      setScreen('createMode');
+      return;
     }
+    setLoadingCreate(true);
+    try {
+      await Promise.all([
+        Asset.loadAsync(CHARACTERS),
+        new Promise((r) => setTimeout(r, 1500)), // minimum time so the loading screen doesn't flash
+      ]);
+    } catch (e) {
+      console.warn('character preload failed', e);
+    }
+    setCharsReady(true);
+    setLoadingCreate(false);
     setScreen('createMode');
   }
 
@@ -110,32 +119,20 @@ function AppContent() {
       <AuthGate>
         <View style={{ flex: 1 }}>
           {screen === 'home' && (
-            <>
-              <HomeScreen
-                onModePress={(mode) => {
-                  setPreset(mode); // 'study' | 'sleep' | 'commute'
-                  setScreen('mode');
-                }}
-                onCreateMode={() => openCreateMode('home')}
-                onAchievements={() => setScreen('achievements')}
-              />
-              <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
-                <TabBar active={tab} onChange={setTab} />
-              </View>
-            </>
+            <HomeScreen
+              onModePress={(mode) => console.log('open mode:', mode)}
+              onCreateMode={openCreateMode}
+              onAchievements={() => console.log('achievements')}
+            />
           )}
 
-          {screen === 'mode' && (
-            <PresetModeScreen
-              mode={preset}
-              onChangeSettings={() => openCreateMode('mode')}
-              onEnd={() => setScreen('home')}
-            />
+          {screen === 'profile' && (
+            <ProfileScreen onBack={() => goToTab('home')} />
           )}
 
           {screen === 'createMode' && (
             <CreateModeScreen
-              onBack={() => setScreen(createFrom)}
+              onBack={() => setScreen('home')}
               onCreate={(mode) => {
                 console.log('new mode:', mode);
                 setScreen('home');
@@ -143,7 +140,12 @@ function AppContent() {
             />
           )}
 
-          {screen === 'achievements' && <AchievementsScreen onBack={() => setScreen('home')} />}
+          {/* Tab bar shows on home and profile, but not while creating a mode */}
+          {screen !== 'createMode' && (
+            <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+              <TabBar active={tab} onChange={goToTab} />
+            </View>
+          )}
         </View>
       </AuthGate>
     </SafeAreaProvider>
