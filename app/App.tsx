@@ -18,6 +18,8 @@ import LoadingScreen from './src/screens/loadingScreen';
 import HomeScreen from './src/screens/homeScreen';
 import TabBar, { TabKey } from './src/components/TabBar';
 import CreateModeScreen, { CHARACTERS } from './src/screens/createModeScreen';
+import PresetModeScreen, { type PresetKey } from './src/screens/presetModes';
+import AchievementsScreen from './src/screens/achievementsScreen';
 import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { AuthGate } from './src/components/AuthGate';
 
@@ -29,6 +31,10 @@ const IMAGES = [
   require('./assets/HomePage/ClassicModo 1.png'),
   require('./assets/HomePage/Cloud Background.png'),
   require('./assets/HomePage/Plus.png'),
+  // used on the preset mode pages
+  require('./assets/createMode/ModoStudy.png'),
+  require('./assets/createMode/ModoSleep.png'),
+  require('./assets/createMode/ModoRun.png'),
 ];
 
 // AuthProvider wraps everything so any screen can use useAuth()
@@ -40,7 +46,6 @@ export default function App() {
   );
 }
 
-// This is your old App, just renamed
 function AppContent() {
   const { isLoading: authLoading } = useAuth();
 
@@ -57,7 +62,9 @@ function AppContent() {
   const [charsReady, setCharsReady] = useState(false);
   const [minTimePassed, setMinTimePassed] = useState(false);
   const [tab, setTab] = useState<TabKey>('home');
-  const [screen, setScreen] = useState<'home' | 'createMode'>('home');
+  const [screen, setScreen] = useState<'home' | 'mode' | 'createMode' | 'achievements'>('home');
+  const [preset, setPreset] = useState<PresetKey>('study'); // which preset page is open
+  const [createFrom, setCreateFrom] = useState<'home' | 'mode'>('home'); // where "Go Back" returns to
 
   useEffect(() => {
     Asset.loadAsync(IMAGES)
@@ -74,22 +81,22 @@ function AppContent() {
     return <LoadingScreen />;
   }
 
-  async function openCreateMode() {
-    if (charsReady) {
-      setScreen('createMode');
-      return;
+  // opens the create mode page (loads the Modo characters the first time)
+  async function openCreateMode(from: 'home' | 'mode') {
+    setCreateFrom(from);
+    if (!charsReady) {
+      setLoadingCreate(true);
+      try {
+        await Promise.all([
+          Asset.loadAsync(CHARACTERS),
+          new Promise((r) => setTimeout(r, 1500)), // minimum time so the loading screen doesn't flash
+        ]);
+      } catch (e) {
+        console.warn('character preload failed', e);
+      }
+      setCharsReady(true);
+      setLoadingCreate(false);
     }
-    setLoadingCreate(true);
-    try {
-      await Promise.all([
-        Asset.loadAsync(CHARACTERS),
-        new Promise((r) => setTimeout(r, 1500)), // minimum time so the loading screen doesn't flash
-      ]);
-    } catch (e) {
-      console.warn('character preload failed', e);
-    }
-    setCharsReady(true);
-    setLoadingCreate(false);
     setScreen('createMode');
   }
 
@@ -102,26 +109,41 @@ function AppContent() {
       {/* Logged out: shows sign in / sign up. Logged in: shows everything inside. */}
       <AuthGate>
         <View style={{ flex: 1 }}>
-          {screen === 'home' ? (
+          {screen === 'home' && (
             <>
               <HomeScreen
-                onModePress={(mode) => console.log('open mode:', mode)}
-                onCreateMode={openCreateMode}
-                onAchievements={() => console.log('achievements')}
+                onModePress={(mode) => {
+                  setPreset(mode); // 'study' | 'sleep' | 'commute'
+                  setScreen('mode');
+                }}
+                onCreateMode={() => openCreateMode('home')}
+                onAchievements={() => setScreen('achievements')}
               />
               <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
                 <TabBar active={tab} onChange={setTab} />
               </View>
             </>
-          ) : (
+          )}
+
+          {screen === 'mode' && (
+            <PresetModeScreen
+              mode={preset}
+              onChangeSettings={() => openCreateMode('mode')}
+              onEnd={() => setScreen('home')}
+            />
+          )}
+
+          {screen === 'createMode' && (
             <CreateModeScreen
-              onBack={() => setScreen('home')}
+              onBack={() => setScreen(createFrom)}
               onCreate={(mode) => {
                 console.log('new mode:', mode);
                 setScreen('home');
               }}
             />
           )}
+
+          {screen === 'achievements' && <AchievementsScreen onBack={() => setScreen('home')} />}
         </View>
       </AuthGate>
     </SafeAreaProvider>
