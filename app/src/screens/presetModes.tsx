@@ -3,6 +3,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts, shadows } from '../theme';
+import { useState } from 'react';
+import { useCountdown } from '../hooks/useCountdown';
+import TimerSettings from '../components/TimerSettings';
 
 export type PresetKey = 'study' | 'sleep' | 'commute';
 
@@ -105,6 +108,18 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
   const preset = PRESETS[mode];
   const c = presetModeColors[mode];
   const modoW = Math.min(width * 0.6, 260);
+  //Timer feature
+  const [durationMinutes, setDurationMinutes] = useState(120);
+  const {
+    formattedTime,
+    isRunning,
+    start,
+    pause,
+    reset,
+  } = useCountdown(durationMinutes * 60);
+  // const [isRunning, setIsRunning] = useState<boolean>(false);
+
+
 
   return (
     <LinearGradient
@@ -148,7 +163,38 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
             ))}
           </View>
 
-          {preset.time && <Text style={[styles.time, { color: c.text }]}>{preset.time}</Text>}
+          {/* display timer */}
+          {mode === 'study' && (
+            <View style={{ marginTop: 20 }}>
+              <TimerSettings
+                durationMinutes={durationMinutes}
+                onDurationChange={setDurationMinutes}
+                textColor={c.text}
+                accentColor={c.accent}
+              />
+            </View>
+          )}
+          {mode === 'study' && (
+            <>
+              <Text style={[styles.time, { color: c.text }]}>
+                {formattedTime}
+              </Text>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12 }}>
+                <Pressable onPress={isRunning ? pause : start}>
+                  <Text style={{ color: c.text }}>
+                    {isRunning ? 'PAUSE' : 'START'}
+                  </Text>
+                </Pressable>
+
+                <Pressable onPress={reset}>
+                  <Text style={{ color: c.text }}>
+                    RESET
+                  </Text>
+                </Pressable>
+              </View>
+            </>
+          )}
           {preset.timeNote && <Text style={[styles.timeNote, { color: c.text }]}>{preset.timeNote}</Text>}
 
           {/* more space above the buttons when there's no time text (Commute) */}

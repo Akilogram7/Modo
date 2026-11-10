@@ -46,6 +46,15 @@ export default function App() {
   );
 }
 
+type CustomMode = {
+  id: string;
+  name: string;
+  color: string;
+  character: number | null;
+  timerEnabled: boolean;
+  timerDuration: number | null;
+};
+
 function AppContent() {
   const { isLoading: authLoading, session } = useAuth();
 
@@ -68,6 +77,7 @@ function AppContent() {
 
   const [preset, setPreset] = useState<PresetKey>('study');
   const [createFrom, setCreateFrom] = useState<'home' | 'mode'>('home');
+  const [customModes, setCustomModes] = useState<CustomMode[]>([]);
 
   useEffect(() => {
     Asset.loadAsync(IMAGES)
@@ -161,7 +171,15 @@ function AppContent() {
             <CreateModeScreen
               onBack={() => setScreen(createFrom)}
               onCreate={(mode) => {
-                console.log('new mode:', mode);
+                const newMode: CustomMode = {
+                  id: `mode-${Date.now()}`,
+                  ...mode,
+                };
+
+                setCustomModes(prev => [...prev, newMode]);
+
+                console.log('Created custom mode:', newMode);
+
                 setScreen('home');
                 setTab('home');
               }}
