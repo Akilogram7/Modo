@@ -19,10 +19,12 @@ import HomeScreen from './src/screens/homeScreen';
 import TabBar, { TabKey } from './src/components/TabBar';
 import CreateModeScreen, { CHARACTERS } from './src/screens/createModeScreen';
 import ProfileScreen from './src/screens/profileScreen';
+import StatsScreen from './src/screens/statsScreen';
 import PresetModeScreen, { type PresetKey } from './src/screens/presetModes';
 import AchievementsScreen from './src/screens/achievementsScreen';
 import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { AuthGate } from './src/components/AuthGate';
+import { startModeSession } from './src/stats/modeSessions';
 
 const IMAGES = [
   require('./assets/HomePage/ModoStudy.png'),
@@ -63,8 +65,8 @@ function AppContent() {
   const [minTimePassed, setMinTimePassed] = useState(false);
   const [tab, setTab] = useState<TabKey>('home');
   const [screen, setScreen] = useState<
-    'home' | 'mode' | 'createMode' | 'achievements' | 'profile'
-  >('home');
+  'home' | 'mode' | 'createMode' | 'achievements' | 'profile' | 'stats'
+>('home');
 
   const [preset, setPreset] = useState<PresetKey>('study');
   const [createFrom, setCreateFrom] = useState<'home' | 'mode'>('home');
@@ -98,6 +100,7 @@ function AppContent() {
     setTab(next);
     if (next === 'home') setScreen('home');
     if (next === 'profile') setScreen('profile');
+    if (next === 'stats') setScreen('stats');
   }
 
   async function openCreateMode(from: 'home' | 'mode') {
@@ -134,6 +137,7 @@ function AppContent() {
           {screen === 'home' && (
             <HomeScreen
               onModePress={(mode) => {
+                startModeSession(mode);
                 setPreset(mode);
                 setScreen('mode');
               }}
@@ -157,6 +161,8 @@ function AppContent() {
             <ProfileScreen onBack={() => goToTab('home')} />
           )}
 
+          {screen === 'stats' && <StatsScreen />}
+
           {screen === 'createMode' && (
             <CreateModeScreen
               onBack={() => setScreen(createFrom)}
@@ -172,7 +178,7 @@ function AppContent() {
             <AchievementsScreen onBack={() => setScreen('home')} />
           )}
 
-          {(screen === 'home' || screen === 'profile') && (
+          {(screen === 'home' || screen === 'profile' || screen === 'stats') && (
             <View
               style={{
                 position: 'absolute',
