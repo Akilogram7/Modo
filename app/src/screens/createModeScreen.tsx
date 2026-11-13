@@ -233,40 +233,6 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
           )}
         </View>
 
-        {/* timer */}
-        {/* <View>
-          <Text>Focus Timer</Text>
-
-          <Switch
-            value={timerEnabled}
-            onValueChange={setTimerEnabled}
-          />
-
-          {timerEnabled && (
-            <View>
-              <Text>Timer Duration</Text>
-
-              <Pressable onPress={() => setTimerMinutes(15)}>
-                <Text>15 minutes</Text>
-              </Pressable>
-
-              <Pressable onPress={() => setTimerMinutes(25)}>
-                <Text>25 minutes</Text>
-              </Pressable>
-
-              <Pressable onPress={() => setTimerMinutes(30)}>
-                <Text>30 minutes</Text>
-              </Pressable>
-
-              <Pressable onPress={() => setTimerMinutes(60)}>
-                <Text>60 minutes</Text>
-              </Pressable>
-
-              <Text>Selected: {timerMinutes} minutes</Text>
-            </View>
-          )}
-        </View> */}
-
         <View style={styles.buttons}>
           <Pressable
             style={({ pressed }) => [styles.button, { backgroundColor: buttonColor }, pressed && styles.pressed]}
