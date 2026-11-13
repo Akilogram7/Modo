@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts, shadows } from '../theme';
+import { endModeSession } from '../stats/modeSessions';
 
 export type PresetKey = 'study' | 'sleep' | 'commute';
 
@@ -161,7 +162,10 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
             </Pressable>
             <Pressable
               style={({ pressed }) => [styles.button, { backgroundColor: c.accent }, pressed && styles.pressed]}
-              onPress={onEnd}
+                onPress={() => {
+                endModeSession(); // saves when the mode ended, for stats
+                onEnd?.();
+              }}
             >
               <Text style={[styles.buttonText, { color: c.text }]}>END MODE</Text>
             </Pressable>
