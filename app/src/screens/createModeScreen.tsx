@@ -4,6 +4,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -12,6 +13,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts, shadows, backgroundColors, gradientStops, gradientDirection } from '../theme';
+import { TimerSettings } from '../features/timer';
+import type { CustomModeInput } from '../types/mode';
+
 
 export const CHARACTERS = [
   require('../../assets/createMode/ModoWave.png'),
@@ -122,7 +126,7 @@ function CharacterOption({
 
 type Props = {
   onBack?: () => void;
-  onCreate?: (mode: { name: string; color: string; character: number | null }) => void;
+  onCreate?: (mode: CustomModeInput) => void;
 };
 
 export default function CreateModeScreen({ onBack, onCreate }: Props) {
@@ -135,11 +139,15 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
   const [color, setColor] = useState(backgroundColors[0]);
   const [character, setCharacter] = useState<number | null>(null);
 
+  //timer 
+  const [timerEnabled, setTimerEnabled] = useState<boolean>(false);
+  const [timerMinutes, setTimerMinutes] = useState<number>(25);
+
   // text and buttons follow the chosen background colour
   const dark = isDark(color);
   const textColor = dark ? '#FFFFFF' : darken(color, 0.45);
   const buttonColor = dark ? lighten(color, 0.25) : darken(color, 0.3);
-  
+
   return (
     <LinearGradient
       colors={[lighten(color, 0.46), color]}
@@ -189,8 +197,36 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
           ))}
         </View>
 
-        <Text style={[styles.label, { color: textColor }]}>FEATURES</Text>
-        <View style={[styles.panel, styles.features]} />
+        <Text style={[styles.label, { color: textColor }]}>
+          FEATURES
+        </Text>
+
+        <View style={[styles.panel, styles.features]}>
+          <View style={styles.featureHeader}>
+            <Text style={[styles.featureTitle, { color: textColor }]}>
+              FOCUS TIMER
+            </Text>
+
+            <Switch
+              value={timerEnabled}
+              onValueChange={setTimerEnabled}
+              trackColor={{
+                false: '#999',
+                true: buttonColor,
+              }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          {timerEnabled && (
+            <TimerSettings
+              durationMinutes={timerMinutes}
+              onDurationChange={setTimerMinutes}
+              textColor={textColor}
+              accentColor={buttonColor}
+            />
+          )}
+        </View>
 
         <View style={styles.buttons}>
           <Pressable
@@ -201,7 +237,15 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
           </Pressable>
           <Pressable
             style={({ pressed }) => [styles.button, { backgroundColor: buttonColor }, pressed && styles.pressed]}
-            onPress={() => onCreate?.({ name, color, character })}
+            onPress={() =>
+              onCreate?.({
+                name,
+                color,
+                character,
+                timerEnabled,
+                timerDuration: timerEnabled ? timerMinutes * 60 : null,
+              })
+            }
           >
             <Text style={styles.buttonText}>Create Mode</Text>
           </Pressable>
@@ -220,7 +264,19 @@ const styles = StyleSheet.create({
   swatchPanel: { padding: 14, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 },
   swatchOn: { transform: [{ scale: 1.1 }] },
   charPanel: { marginTop: 16, padding: 10, flexDirection: 'row', flexWrap: 'wrap' },
-  features: { height: 110 },
+  features: {
+    padding: 20,
+    gap: 16,
+  },
+  featureHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  featureTitle: {
+    fontSize: 20,
+    fontFamily: fonts.headingBold,
+  },
   buttons: { alignItems: 'center', marginTop: 24, rowGap: 10 },
   button: { borderRadius: 30, paddingVertical: 12, paddingHorizontal: 40, ...shadows.raised },
   buttonText: { color: '#fff', fontSize: 24, fontFamily: fonts.headingBold },

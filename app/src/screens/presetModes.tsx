@@ -3,8 +3,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts, shadows } from '../theme';
+import { useState } from 'react';
+import { FocusTimer } from '../features/timer';
 import { endModeSession } from '../stats/modeSessions';
-
 export type PresetKey = 'study' | 'sleep' | 'commute';
 
 // ─────────────── PRESET MODE COLOURS ───────────────
@@ -39,6 +40,7 @@ const presetModeColors: Record<
 const GRADIENT_STOPS = [0.36, 0.48] as const;
 const GRADIENT_START = { x: 1, y: 0 };
 const GRADIENT_END = { x: 0.22, y: 0.735 };
+
 
 type Row = {
   label: string;
@@ -106,6 +108,7 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
   const preset = PRESETS[mode];
   const c = presetModeColors[mode];
   const modoW = Math.min(width * 0.6, 260);
+  const [timerEnabled, setTimerEnabled] = useState(true);
 
   return (
     <LinearGradient
@@ -128,28 +131,44 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
           style={{ width: modoW, height: modoW * 0.75, alignSelf: 'center' }}
           resizeMode="contain"
         />
-
+        
         <View style={[styles.panel, { backgroundColor: darken(c.gradientBottom, 0.08) }]}>
           <View style={styles.list}>
-            {preset.rows.map((r) => (
+            {preset.rows.map((r) => {
+              const isChecked = r.label === 'TIMER' && mode === 'study' ? timerEnabled : r.checked;
+              return (
               <View key={r.label}>
                 <View style={styles.row}>
-                  <View
+                  <Pressable
+                    onPress={() => {
+                      if (r.label === 'TIMER' && mode === 'study') {
+                        setTimerEnabled(prev => !prev); // hiding FocusTimer stops its countdown
+                      }
+                    }}
                     style={[
                       styles.box,
-                      { borderColor: c.accent, backgroundColor: r.checked ? c.text : c.accent },
-                    ]}
-                  >
-                    {r.checked && <Ionicons name="checkmark" size={24} color={c.accent} />}
-                  </View>
+                      { borderColor: c.accent, backgroundColor: isChecked ? c.text : c.accent },
+                    ]} 
+                    >
+                    {isChecked && <Ionicons name="checkmark" size={24} color={c.accent} />}
+                  </Pressable>
+
                   <Text style={[styles.rowText, { color: c.text }]}>{r.label}</Text>
                 </View>
                 {r.box && <View style={[styles.placeholderBox, { backgroundColor: c.accent }]} />}
               </View>
-            ))}
+              );
+            })}
           </View>
 
-          {preset.time && <Text style={[styles.time, { color: c.text }]}>{preset.time}</Text>}
+          {/* Reuse the same timer in Study Mode and custom modes. */}
+          {mode === 'study' && timerEnabled && (
+            <FocusTimer
+              initialDurationSeconds={120 * 60}
+              textColor={c.text}
+              accentColor={c.accent}
+            />
+          )}
           {preset.timeNote && <Text style={[styles.timeNote, { color: c.text }]}>{preset.timeNote}</Text>}
 
           {/* more space above the buttons when there's no time text (Commute) */}

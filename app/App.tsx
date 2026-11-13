@@ -25,6 +25,8 @@ import AchievementsScreen from './src/screens/achievementsScreen';
 import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { AuthGate } from './src/components/AuthGate';
 import { startModeSession } from './src/stats/modeSessions';
+import CustomModeScreen from './src/screens/customModeScreen';
+import type { CustomMode } from './src/types/mode';
 
 const IMAGES = [
   require('./assets/HomePage/ModoStudy.png'),
@@ -65,11 +67,13 @@ function AppContent() {
   const [minTimePassed, setMinTimePassed] = useState(false);
   const [tab, setTab] = useState<TabKey>('home');
   const [screen, setScreen] = useState<
-  'home' | 'mode' | 'createMode' | 'achievements' | 'profile' | 'stats'
+  'home' | 'mode' | 'customMode' | 'createMode' | 'achievements' | 'profile' | 'stats'
 >('home');
 
   const [preset, setPreset] = useState<PresetKey>('study');
   const [createFrom, setCreateFrom] = useState<'home' | 'mode'>('home');
+  const [customModes, setCustomModes] = useState<CustomMode[]>([]);
+  const [activeCustomMode, setActiveCustomMode] = useState<CustomMode | null>(null);
 
   useEffect(() => {
     Asset.loadAsync(IMAGES)
@@ -136,6 +140,12 @@ function AppContent() {
         <View style={{ flex: 1 }}>
           {screen === 'home' && (
             <HomeScreen
+              customModes={customModes}
+              onCustomModePress={(mode) => {
+                setActiveCustomMode(mode);
+                void startModeSession(mode.id);
+                setScreen('customMode');
+              }}
               onModePress={(mode) => {
                 startModeSession(mode);
                 setPreset(mode);
@@ -157,6 +167,17 @@ function AppContent() {
             />
           )}
 
+          {screen === 'customMode' && activeCustomMode && (
+            <CustomModeScreen
+              mode={activeCustomMode}
+              onEnd={() => {
+                setActiveCustomMode(null);
+                setTab('home');
+                setScreen('home');
+              }}
+            />
+          )}
+
           {screen === 'profile' && (
             <ProfileScreen onBack={() => goToTab('home')} />
           )}
@@ -167,7 +188,15 @@ function AppContent() {
             <CreateModeScreen
               onBack={() => setScreen(createFrom)}
               onCreate={(mode) => {
-                console.log('new mode:', mode);
+                const newMode: CustomMode = {
+                  id: `mode-${Date.now()}`,
+                  ...mode,
+                };
+
+                setCustomModes(prev => [...prev, newMode]);
+
+                console.log('Created custom mode:', newMode);
+
                 setScreen('home');
                 setTab('home');
               }}

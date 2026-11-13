@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, gradientStops, gradientDirection, fonts, shadows } from '../theme';
 import { useAuth } from '../providers/AuthProvider';
+import { CHARACTERS } from './createModeScreen';
+import type { CustomMode } from '../types/mode';
 
 // Colours only used on this screen
 const CARD = {
@@ -21,6 +23,8 @@ type Props = {
   onCreateMode?: () => void;
   onAchievements?: () => void;
   onSettings?: () => void;
+  customModes?: CustomMode[];
+  onCustomModePress?: (mode: CustomMode) => void;
 };
 
 const MODES = [
@@ -50,6 +54,8 @@ export default function HomeScreen({
   onCreateMode,
   onAchievements,
   onSettings,
+  customModes = [],
+  onCustomModePress,
 }: Props) {
   const { user } = useAuth();
   const displayName = user?.user_metadata?.display_name ?? name;
@@ -144,6 +150,26 @@ export default function HomeScreen({
                 />
 
                 <Text style={styles.cardLabel}>{m.label}</Text>
+              </Pressable>
+            ))}
+
+            {/* User-created modes use the same card layout as presets. */}
+            {customModes.map((mode) => (
+              <Pressable
+                key={mode.id}
+                style={({ pressed }) => [
+                  styles.card,
+                  { backgroundColor: mode.color },
+                  pressed && styles.pressed,
+                ]}
+                onPress={() => onCustomModePress?.(mode)}
+              >
+                {mode.character !== null && CHARACTERS[mode.character] !== undefined && (
+                  <Image source={CHARACTERS[mode.character]} style={styles.cardImg} resizeMode="contain" />
+                )}
+                <Text style={styles.cardLabel} numberOfLines={2} adjustsFontSizeToFit>
+                  {mode.name || 'CUSTOM MODE'}
+                </Text>
               </Pressable>
             ))}
 
