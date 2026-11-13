@@ -13,7 +13,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts, shadows, backgroundColors, gradientStops, gradientDirection } from '../theme';
-import TimerSettings from '../components/TimerSettings';
+import { TimerSettings } from '../features/timer';
+import type { CustomModeInput } from '../types/mode';
 
 
 export const CHARACTERS = [
@@ -125,13 +126,7 @@ function CharacterOption({
 
 type Props = {
   onBack?: () => void;
-  onCreate?: (mode: {
-    name: string;
-    color: string;
-    character: number | null;
-    timerEnabled: boolean;
-    timerDuration: number | null;
-  }) => void;
+  onCreate?: (mode: CustomModeInput) => void;
 };
 
 export default function CreateModeScreen({ onBack, onCreate }: Props) {

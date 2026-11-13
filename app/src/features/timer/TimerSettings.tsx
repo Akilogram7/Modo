@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import {
   Pressable,
@@ -7,7 +6,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { fonts } from '../theme';
+import { fonts } from '../../theme';
 
 type Props = {
   durationMinutes: number;
