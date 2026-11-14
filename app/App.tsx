@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Alert, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { Asset } from 'expo-asset';
+
 
 import { DynaPuff_400Regular } from '@expo-google-fonts/dynapuff';
 import {
@@ -27,6 +28,10 @@ import { AuthGate } from './src/components/AuthGate';
 import { startModeSession } from './src/stats/modeSessions';
 import CustomModeScreen from './src/screens/customModeScreen';
 import type { CustomMode } from './src/types/mode';
+import {
+  createCustomMode,
+  fetchCustomModes,
+} from './src/services/customModes';
 
 const IMAGES = [
   require('./assets/HomePage/ModoStudy.png'),
@@ -67,13 +72,15 @@ function AppContent() {
   const [minTimePassed, setMinTimePassed] = useState(false);
   const [tab, setTab] = useState<TabKey>('home');
   const [screen, setScreen] = useState<
-  'home' | 'mode' | 'customMode' | 'createMode' | 'achievements' | 'profile' | 'stats'
->('home');
+    'home' | 'mode' | 'customMode' | 'createMode' | 'achievements' | 'profile' | 'stats'
+  >('home');
 
   const [preset, setPreset] = useState<PresetKey>('study');
   const [createFrom, setCreateFrom] = useState<'home' | 'mode'>('home');
   const [customModes, setCustomModes] = useState<CustomMode[]>([]);
   const [activeCustomMode, setActiveCustomMode] = useState<CustomMode | null>(null);
+  const [modesLoading, setModesLoading] = useState(false);
+  const [savingMode, setSavingMode] = useState(false);
 
   useEffect(() => {
     Asset.loadAsync(IMAGES)
@@ -88,14 +95,56 @@ function AppContent() {
   // When someone logs out, go back to home so the next person
   // who logs in doesn't land on the old profile screen
   useEffect(() => {
-    if (!session) {
+    let cancelled = false;
+
+    if (!session?.user.id) {
       setTab('home');
       setScreen('home');
+      setCustomModes([]);
+      setActiveCustomMode(null);
+      setModesLoading(false);
+
+      return;
     }
-  }, [session]);
+
+    setCustomModes([]);
+    setActiveCustomMode(null);
+    setModesLoading(true);
+
+    fetchCustomModes()
+      .then((modes) => {
+        if (!cancelled) {
+          setCustomModes(modes);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error('Failed to load custom modes:', error);
+          Alert.alert(
+            'Unable to load modes',
+            'Please check your connection and try signing in again.',
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setModesLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user.id]);
 
   // Loading screen while assets load AND while we check if someone's already logged in
-  if (!fontsLoaded || !imagesLoaded || !minTimePassed || authLoading) {
+  if (
+    !fontsLoaded ||
+    !imagesLoaded ||
+    !minTimePassed ||
+    authLoading ||
+    (session && modesLoading)
+  ) {
     return <LoadingScreen />;
   }
 
@@ -187,18 +236,30 @@ function AppContent() {
           {screen === 'createMode' && (
             <CreateModeScreen
               onBack={() => setScreen(createFrom)}
-              onCreate={(mode) => {
-                const newMode: CustomMode = {
-                  id: `mode-${Date.now()}`,
-                  ...mode,
-                };
+              onCreate={async (mode) => {
+                if (savingMode) return;
 
-                setCustomModes(prev => [...prev, newMode]);
+                setSavingMode(true);
 
-                console.log('Created custom mode:', newMode);
+                try {
+                  const newMode = await createCustomMode(mode);
 
-                setScreen('home');
-                setTab('home');
+                  setCustomModes((prev) => [...prev, newMode]);
+
+                  console.log('Saved custom mode:', newMode);
+
+                  setScreen('home');
+                  setTab('home');
+                } catch (error) {
+                  console.error('Failed to save custom mode:', error);
+
+                  Alert.alert(
+                    'Unable to save mode',
+                    'Your mode could not be saved. Please try again.',
+                  );
+                } finally {
+                  setSavingMode(false);
+                }
               }}
             />
           )}
