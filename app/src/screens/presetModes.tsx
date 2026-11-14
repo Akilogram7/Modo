@@ -6,6 +6,7 @@ import { fonts, shadows } from '../theme';
 import { useState } from 'react';
 import { FocusTimer } from '../features/timer';
 import { endModeSession } from '../stats/modeSessions';
+import { MusicSettings } from '../features/music';
 export type PresetKey = 'study' | 'sleep' | 'commute';
 
 // ─────────────── PRESET MODE COLOURS ───────────────

@@ -1,4 +1,4 @@
-import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,8 @@ import { CHARACTERS } from './createModeScreen';
 import { FocusTimer } from '../features/timer';
 import type { CustomMode } from '../types/mode';
 import { endModeSession } from '../stats/modeSessions';
+import { MusicSettings } from '../features/music';
+import { openSpotifyPlaylist } from '../features/music';
 
 type Props = { mode: CustomMode; onEnd: () => void };
 
@@ -52,11 +54,13 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
         {characterImage !== undefined && (
           <Image source={characterImage} style={{ width: modoW, height: modoW * 0.75, alignSelf: 'center' }} resizeMode="contain" />
         )}
+
         <View style={[styles.panel, { backgroundColor: darken(mode.color, 0.08) }]}>
           <View style={styles.row}>
             <View style={[styles.box, { backgroundColor: mode.timerEnabled ? '#FFFFFF' : accent, borderColor: accent }]}>
               {mode.timerEnabled && <Ionicons name="checkmark" size={24} color={accent} />}
             </View>
+            {/* timer */}
             <Text style={[styles.rowText, { color: textColor }]}>TIMER</Text>
           </View>
           {mode.timerEnabled && mode.timerDuration !== null && (
@@ -73,8 +77,37 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
             <Text style={[styles.buttonText, { color: textColor }]}>END MODE</Text>
           </Pressable>
         </View>
+
+        {/* music */}
+        {mode.musicEnabled && mode.playlistUrl && (
+          <Pressable
+            onPress={async () => {
+              try {
+                await openSpotifyPlaylist(mode.playlistUrl!);
+              } catch {
+                Alert.alert(
+                  'Unable to open Spotify',
+                  'Please check your playlist link.',
+                );
+              }
+            }}
+            style={({ pressed }) => [
+              styles.spotifyButton,
+              pressed && { opacity: 0.8 },
+            ]}
+          >
+            <Text style={styles.spotifyIcon}>♫</Text>
+
+            <Text style={styles.spotifyButtonText} numberOfLines={2}>
+              OPEN SPOTIFY
+              {'\n'}
+              {mode.playlistName?.trim() || 'YOUR PLAYLIST'}
+            </Text>
+          </Pressable>
+        )}
       </ScrollView>
     </LinearGradient>
+
   );
 }
 
@@ -88,4 +121,37 @@ const styles = StyleSheet.create({
   note: { fontSize: 16, marginTop: 20, fontFamily: fonts.bodyBold },
   button: { alignSelf: 'center', marginTop: 30, borderRadius: 30, paddingVertical: 8, paddingHorizontal: 24, ...shadows.raised },
   buttonText: { fontSize: 30, lineHeight: 50, fontFamily: fonts.headingBold },
+  spotifyButton: {
+    backgroundColor: '#168344',
+    borderRadius: 22,
+    minHeight: 100,
+    width: '100%',
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    marginTop: 20,
+    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 16,
+    borderWidth: 2,
+    borderColor: '#0D6532',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+  },
+  spotifyIcon: {
+    color: '#FFFFFF',
+    fontSize: 36,
+    fontWeight: 'bold',
+  },
+  spotifyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 19,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    flexShrink: 1,
+  },
 });

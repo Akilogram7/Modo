@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts, shadows, backgroundColors, gradientStops, gradientDirection } from '../theme';
 import { TimerSettings } from '../features/timer';
 import type { CustomModeInput } from '../types/mode';
+import { MusicSettings } from '../features/music';
 
 
 export const CHARACTERS = [
@@ -143,6 +144,11 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
   const [timerEnabled, setTimerEnabled] = useState<boolean>(false);
   const [timerMinutes, setTimerMinutes] = useState<number>(25);
 
+  //music
+  const [playlistUrl, setPlaylistUrl] = useState('');
+  const [musicEnabled, setMusicEnabled] = useState(false);
+  const [playlistName, setPlaylistName] = useState('');
+
   // text and buttons follow the chosen background colour
   const dark = isDark(color);
   const textColor = dark ? '#FFFFFF' : darken(color, 0.45);
@@ -201,6 +207,8 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
           FEATURES
         </Text>
 
+        {/* timer */}
+
         <View style={[styles.panel, styles.features]}>
           <View style={styles.featureHeader}>
             <Text style={[styles.featureTitle, { color: textColor }]}>
@@ -228,6 +236,37 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
           )}
         </View>
 
+        {/* music */}
+
+        <View style={[styles.panel, styles.features, { marginTop: 16 }]}>
+          <View style={styles.featureHeader}>
+            <Text style={[styles.featureTitle, { color: textColor }]}>
+              MUSIC
+            </Text>
+
+            <Switch
+              value={musicEnabled}
+              onValueChange={setMusicEnabled}
+              trackColor={{
+                false: '#999',
+                true: buttonColor,
+              }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          {musicEnabled && (
+            <MusicSettings
+              playlistUrl={playlistUrl}
+              onPlaylistChange={setPlaylistUrl}
+              textColor={textColor}
+              accentColor={buttonColor}
+              playlistName={playlistName}
+              onPlaylistNameChange={setPlaylistName}
+            />
+          )}
+        </View>
+
         <View style={styles.buttons}>
           <Pressable
             style={({ pressed }) => [styles.button, { backgroundColor: buttonColor }, pressed && styles.pressed]}
@@ -244,6 +283,9 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
                 character,
                 timerEnabled,
                 timerDuration: timerEnabled ? timerMinutes * 60 : null,
+                musicEnabled,
+                playlistUrl: musicEnabled ? playlistUrl.trim() : null,
+                playlistName: musicEnabled ? playlistName.trim() : null,
               })
             }
           >
