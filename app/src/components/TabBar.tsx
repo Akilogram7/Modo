@@ -2,7 +2,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, shadows } from '../theme';
+import { colors, fonts, shadows } from '../../assets/theme';
 
 const TABS = [
   { key: 'home', label: 'Home', icon: 'home' },

@@ -15,7 +15,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, gradientStops, gradientDirection, fonts, shadows } from '../theme';
+import { colors, gradientStops, gradientDirection, fonts, shadows } from '../../assets/theme';
 import { useAuth } from '../providers/AuthProvider';
 import { supabase } from '../../lib/supabase';
 
@@ -116,13 +116,6 @@ export default function ProfileScreen({ onBack }: Props) {
       style={styles.bg}
     >
       {/* Background */}
-      <Image
-        source={require('../../assets/HomePage/Cloud Background.png')}
-        style={styles.backgroundImage}
-        resizeMode="stretch"
-        pointerEvents="none"
-      />
-
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
@@ -155,7 +148,7 @@ export default function ProfileScreen({ onBack }: Props) {
             <View style={styles.hero}>
               <View style={styles.avatar}>
                 <Image
-                  source={require('../../assets/HomePage/ClassicModo 1.png')}
+                  source={require('../../assets/HomePage/ClassicModo.png')}
                   style={styles.avatarImg}
                   resizeMode="contain"
                 />

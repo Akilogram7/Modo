@@ -18,8 +18,7 @@ export const gradientDirection = {
 // exact names from useFonts in App.tsx
 export const fonts = {
   logo: 'DynaPuff_400Regular',
-  body: 'Nunito_400Regular',
-  bodyBold: 'Nunito_700Bold',
+  bodyBold: 'DynaPuff_500Medium',
   heading: 'Baloo2_600SemiBold',
   headingBold: 'Baloo2_700Bold',
 };

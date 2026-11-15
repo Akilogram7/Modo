@@ -11,7 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, gradientStops, gradientDirection, fonts, shadows } from '../theme';
+import { colors, gradientStops, gradientDirection, fonts, shadows } from '../../assets/theme';
 import {
   SAMPLE_GOALS,
   SAMPLE_IMPACT,
@@ -83,13 +83,6 @@ export default function StatsScreen() {
       style={styles.bg}
     >
       {/* Background */}
-      <Image
-        source={require('../../assets/HomePage/Cloud Background.png')}
-        style={styles.backgroundImage}
-        resizeMode="stretch"
-        pointerEvents="none"
-      />
-
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <Text style={styles.title}>Your Stats</Text>
@@ -379,7 +372,7 @@ function EmptyState() {
   return (
     <View style={[styles.card, styles.empty]}>
       <Image
-        source={require('../../assets/HomePage/ClassicModo 1.png')}
+        source={require('../../assets/HomePage/ClassicModo.png')}
         style={styles.emptyImg}
         resizeMode="contain"
       />

@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fonts, shadows, backgroundColors, gradientStops, gradientDirection } from '../theme';
+import { fonts, shadows, backgroundColors, gradientStops, gradientDirection } from '../../assets/theme';
 import { TimerSettings } from '../features/timer';
 import type { CustomModeInput } from '../types/mode';
 

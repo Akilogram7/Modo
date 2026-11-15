@@ -1,7 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, shadows } from '../theme';
+import { colors, fonts, shadows } from '../../assets/theme';
 
 // ─────────────── ACHIEVEMENTS COLOURS ───────────────
 // (kept here so theme.ts doesn't change; can be moved into theme.ts later)

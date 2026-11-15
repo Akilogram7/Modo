@@ -8,7 +8,7 @@ import {
   View,
   type TextInputProps,
 } from 'react-native'
-import { colors as theme, fonts, shadows } from '../theme'
+import { colors as theme, fonts, shadows } from '../../assets/theme'
 
 export const colors = {
   night: '#FF923F',     // dark text on cream button
