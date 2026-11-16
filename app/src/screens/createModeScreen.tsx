@@ -15,8 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts, shadows, backgroundColors, gradientStops, gradientDirection } from '../../assets/theme';
 import { TimerSettings } from '../features/timer';
 import type { CustomModeInput } from '../types/mode';
-
-
+import { MusicSettings } from '../features/music';
 export const CHARACTERS = [
   require('../../assets/Modos/ModoWave.png'),
   require('../../assets/Modos/ModoWink.png'),
@@ -34,9 +33,7 @@ export const CHARACTERS = [
   require('../../assets/Modos/ModoMusic.png'),
   require('../../assets/Modos/ModoYippee.png'),
 ];
-
 const COLUMNS = 5;
-
 // blends a colour toward white, used for the light end of the gradient
 function lighten(hex: string, amount: number) {
   const n = parseInt(hex.slice(1), 16);
@@ -46,7 +43,6 @@ function lighten(hex: string, amount: number) {
   const b = mix(n & 255);
   return `rgb(${r},${g},${b})`;
 }
-
 // blends a colour toward black, used for the text and buttons
 function darken(hex: string, amount: number) {
   const n = parseInt(hex.slice(1), 16);
@@ -56,7 +52,6 @@ function darken(hex: string, amount: number) {
   const b = mix(n & 255);
   return `rgb(${r},${g},${b})`;
 }
-
 // true if the colour is dark, so we know to use light text on it
 function isDark(hex: string) {
   const n = parseInt(hex.slice(1), 16);
@@ -65,7 +60,6 @@ function isDark(hex: string) {
   const b = n & 255;
   return (r * 299 + g * 587 + b * 114) / 1000 < 90;
 }
-
 // one Modo in the panel: glows and wiggles when selected
 function CharacterOption({
   source,
@@ -80,10 +74,8 @@ function CharacterOption({
 }) {
   const glow = useRef(new Animated.Value(0)).current;
   const wiggle = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
     Animated.timing(glow, { toValue: selected ? 1 : 0, duration: 250, useNativeDriver: true }).start();
-
     if (selected) {
       const t = { duration: 90, useNativeDriver: true };
       Animated.sequence([
@@ -95,59 +87,56 @@ function CharacterOption({
       ]).start();
     }
   }, [selected]);
-
   const rotate = wiggle.interpolate({ inputRange: [-1, 1], outputRange: ['-10deg', '10deg'] });
-
   return (
     <Pressable onPress={onPress} style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      {/* the glow: a white, blurred copy of the same image behind the Modo */}
-      <Animated.Image
-        source={source}
-        resizeMode="contain"
-        blurRadius={12}
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          width: size * 0.95,
-          height: size * 0.95,
-          tintColor: '#fff',
-          opacity: glow,
-          transform: [{ rotate }, { scale: 1.12 }],
-        }}
-      />
-      <Animated.Image
-        source={source}
-        resizeMode="contain"
-        style={{ width: size * 0.95, height: size * 0.95, transform: [{ rotate }] }}
-      />
+        {/* the glow: a white, blurred copy of the same image behind the Modo */}
+        <Animated.Image
+          source={source}
+          resizeMode="contain"
+          blurRadius={12}
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            width: size * 0.95,
+            height: size * 0.95,
+            tintColor: '#fff',
+            opacity: glow,
+            transform: [{ rotate }, { scale: 1.12 }],
+          }}
+        />
+        <Animated.Image
+          source={source}
+          resizeMode="contain"
+          style={{ width: size * 0.95, height: size * 0.95, transform: [{ rotate }] }}
+        />
     </Pressable>
   );
 }
-
 type Props = {
   onBack?: () => void;
   onCreate?: (mode: CustomModeInput) => void;
 };
-
 export default function CreateModeScreen({ onBack, onCreate }: Props) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const GAP = 12;
-  const swatchW = (width - 48 - 28 - GAP * 3) / 4; // screen minus side padding, panel padding, and gaps
-  const charSize = (width - 48 - 20) / COLUMNS; // screen minus side padding and panel padding
+  const swatchW = (width - 48 - 28 - GAP * 3) / 4; // screen minus side padding, panel padding, and gaps*
+  const charSize = (width - 48 - 20) / COLUMNS; // screen minus side padding and panel padding*
   const [name, setName] = useState('');
   const [color, setColor] = useState(backgroundColors[0]);
   const [character, setCharacter] = useState<number | null>(null);
-
-  //timer 
+  //timer&#x20;
   const [timerEnabled, setTimerEnabled] = useState<boolean>(false);
   const [timerMinutes, setTimerMinutes] = useState<number>(25);
-
+  //music
+  const [playlistUrl, setPlaylistUrl] = useState('');
+  const [musicEnabled, setMusicEnabled] = useState(false);
+  const [playlistName, setPlaylistName] = useState('');
   // text and buttons follow the chosen background colour
   const dark = isDark(color);
   const textColor = dark ? '#FFFFFF' : darken(color, 0.45);
   const buttonColor = dark ? lighten(color, 0.25) : darken(color, 0.3);
-
   return (
     <LinearGradient
       colors={[lighten(color, 0.46), color]}
@@ -157,11 +146,12 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
       style={{ flex: 1 }}
     >
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 20 }]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 180 }]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.title, { color: textColor }]}>CREATE MODE</Text>
-
         <Text style={[styles.label, { color: textColor }]}>EDIT NAME</Text>
         <TextInput
           style={[styles.panel, styles.input, { color: textColor }]}
@@ -169,7 +159,6 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
           onChangeText={setName}
           maxLength={20}
         />
-
         <Text style={[styles.label, { color: textColor }]}>CUSTOMIZE</Text>
         <View style={[styles.panel, styles.swatchPanel]}>
           {backgroundColors.map((c) => (
@@ -183,7 +172,6 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
             />
           ))}
         </View>
-
         {/* Character panel */}
         <View style={[styles.panel, styles.charPanel]}>
           {CHARACTERS.map((src, i) => (
@@ -196,17 +184,15 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
             />
           ))}
         </View>
-
         <Text style={[styles.label, { color: textColor }]}>
           FEATURES
         </Text>
-
+        {/* timer */}
         <View style={[styles.panel, styles.features]}>
           <View style={styles.featureHeader}>
             <Text style={[styles.featureTitle, { color: textColor }]}>
               FOCUS TIMER
             </Text>
-
             <Switch
               value={timerEnabled}
               onValueChange={setTimerEnabled}
@@ -217,7 +203,6 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
               thumbColor="#FFFFFF"
             />
           </View>
-
           {timerEnabled && (
             <TimerSettings
               durationMinutes={timerMinutes}
@@ -227,7 +212,33 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
             />
           )}
         </View>
-
+        {/* music */}
+        <View style={[styles.panel, styles.features, { marginTop: 16 }]}>
+          <View style={styles.featureHeader}>
+            <Text style={[styles.featureTitle, { color: textColor }]}>
+              MUSIC
+            </Text>
+            <Switch
+              value={musicEnabled}
+              onValueChange={setMusicEnabled}
+              trackColor={{
+                false: '#999',
+                true: buttonColor,
+              }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+          {musicEnabled && (
+            <MusicSettings
+              playlistUrl={playlistUrl}
+              onPlaylistChange={setPlaylistUrl}
+              textColor={textColor}
+              accentColor={buttonColor}
+              playlistName={playlistName}
+              onPlaylistNameChange={setPlaylistName}
+            />
+          )}
+        </View>
         <View style={styles.buttons}>
           <Pressable
             style={({ pressed }) => [styles.button, { backgroundColor: buttonColor }, pressed && styles.pressed]}
@@ -244,6 +255,9 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
                 character,
                 timerEnabled,
                 timerDuration: timerEnabled ? timerMinutes * 60 : null,
+                musicEnabled,
+                playlistUrl: musicEnabled ? playlistUrl.trim() : null,
+                playlistName: musicEnabled ? playlistName.trim() : null,
               })
             }
           >
@@ -254,7 +268,6 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
     </LinearGradient>
   );
 }
-
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 24, paddingBottom: 40 },
   title: { fontSize: 38, fontFamily: fonts.headingBold, textAlign: 'center', marginBottom: 16 },
