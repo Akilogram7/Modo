@@ -117,7 +117,7 @@ export default function ProfileScreen({ onBack }: Props) {
     >
       {/* Background */}
       <Image
-        source={require('../../assets/HomePage/Cloud Background.png')}
+        source={require('../../assets/HomePage/CloudBackground.png')}
         style={styles.backgroundImage}
         resizeMode="stretch"
         pointerEvents="none"
@@ -155,7 +155,7 @@ export default function ProfileScreen({ onBack }: Props) {
             <View style={styles.hero}>
               <View style={styles.avatar}>
                 <Image
-                  source={require('../../assets/HomePage/ClassicModo 1.png')}
+                  source={require('../../assets/HomePage/ClassicModo1.png')}
                   style={styles.avatarImg}
                   resizeMode="contain"
                 />

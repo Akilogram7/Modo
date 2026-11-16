@@ -76,7 +76,7 @@ export default function HomeScreen({
     >
       {/* Background */}
       <Image
-        source={require('../../assets/HomePage/Cloud Background.png')}
+        source={require('../../assets/HomePage/CloudBackground.png')}
         style={styles.backgroundImage}
         resizeMode="stretch"
         pointerEvents="none"
@@ -201,7 +201,7 @@ export default function HomeScreen({
             onPress={onAchievements}
           >
             <Image
-              source={require('../../assets/HomePage/ClassicModo 1.png')}
+              source={require('../../assets/HomePage/ClassicModo1.png')}
               style={styles.bannerImg}
               resizeMode="contain"
             />

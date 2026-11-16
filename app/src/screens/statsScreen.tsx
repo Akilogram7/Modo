@@ -84,7 +84,7 @@ export default function StatsScreen() {
     >
       {/* Background */}
       <Image
-        source={require('../../assets/HomePage/Cloud Background.png')}
+        source={require('../../assets/HomePage/CloudBackground.png')}
         style={styles.backgroundImage}
         resizeMode="stretch"
         pointerEvents="none"
@@ -379,7 +379,7 @@ function EmptyState() {
   return (
     <View style={[styles.card, styles.empty]}>
       <Image
-        source={require('../../assets/HomePage/ClassicModo 1.png')}
+        source={require('../../assets/HomePage/ClassicModo1.png')}
         style={styles.emptyImg}
         resizeMode="contain"
       />
