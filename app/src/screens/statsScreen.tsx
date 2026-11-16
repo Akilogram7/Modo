@@ -372,7 +372,7 @@ function EmptyState() {
   return (
     <View style={[styles.card, styles.empty]}>
       <Image
-        source={require('../../assets/HomePage/ClassicModo.png')}
+        source={require('../../assets/Modos/ModoWave.png')}
         style={styles.emptyImg}
         resizeMode="contain"
       />

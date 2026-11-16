@@ -45,7 +45,7 @@ export function FloatingCloud({
 
   return (
     <Animated.Image
-      source={require('../../assets/Log In Page/cloud.png')}
+      source={require('../../assets/LogInPage/cloud.png')}
       resizeMode="contain"
       pointerEvents="none"
       style={{
@@ -109,7 +109,7 @@ export default function AuthBackground({ children }: PropsWithChildren) {
             resizeMode="contain"
           />
           <Animated.Image
-            source={require('../../assets/logo/ModoWave.png')}
+            source={require('../../assets/Modos/ModoWave.png')}
             style={[styles.character, { transform: [{ translateY }] }]}
             resizeMode="contain"
           />

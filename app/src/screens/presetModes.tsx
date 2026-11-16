@@ -59,7 +59,7 @@ type Preset = {
 const PRESETS: Record<PresetKey, Preset> = {
   study: {
     title: 'STUDY MODE',
-    image: require('../../assets/createMode/ModoStudy.png'),
+    image: require('../../assets/Modos/ModoStudy.png'),
     rows: [
       { label: 'DO NOT DISTURB', checked: true },
       { label: 'PLAYLIST', checked: false },
@@ -69,7 +69,7 @@ const PRESETS: Record<PresetKey, Preset> = {
   },
   sleep: {
     title: 'SLEEP MODE',
-    image: require('../../assets/createMode/ModoSleep.png'),
+    image: require('../../assets/Modos/ModoSleep.png'),
     rows: [
       { label: 'BLUE LIGHT FILTER', checked: true },
       { label: 'DO NOT DISTURB', checked: false },
@@ -80,7 +80,7 @@ const PRESETS: Record<PresetKey, Preset> = {
   },
   commute: {
     title: 'COMMUTE MODE',
-    image: require('../../assets/createMode/ModoRun.png'),
+    image: require('../../assets/Modos/ModoRun.png'),
     rows: [
       { label: 'PLAYLIST', checked: true },
       { label: 'YOUR ROUTE', checked: false, box: true },

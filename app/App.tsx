@@ -26,14 +26,11 @@ import {
 } from './src/services/customModes';
 
 const IMAGES = [
-  require('./assets/HomePage/ModoStudy.png'),
-  require('./assets/HomePage/ModoSleep.png'),
-  require('./assets/HomePage/ModoRun.png'),
-  require('./assets/HomePage/ModoSunglasses.png'),
-  require('./assets/HomePage/ClassicModo.png'),
-  require('./assets/createMode/ModoStudy.png'),
-  require('./assets/createMode/ModoSleep.png'),
-  require('./assets/createMode/ModoRun.png'),
+  require('./assets/Modos/ModoStudy.png'),
+  require('./assets/Modos/ModoSleep.png'),
+  require('./assets/Modos/ModoRun.png'),
+  require('./assets/Modos/ModoSunglasses.png'),
+  require('./assets/Modos/ModoWave.png'),
 ];
 
 // AuthProvider wraps everything so any screen can use useAuth()

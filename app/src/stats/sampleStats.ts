@@ -22,19 +22,19 @@ export const STAT_MODES: StatMode[] = [
     id: 'study',
     label: 'Study',
     color: '#5B6BB5',
-    image: require('../../assets/HomePage/ModoStudy.png'),
+    image: require('../../assets/Modos/ModoStudy.png'),
   },
   {
     id: 'sleep',
     label: 'Sleep',
     color: '#D4709A',
-    image: require('../../assets/HomePage/ModoSleep.png'),
+    image: require('../../assets/Modos/ModoSleep.png'),
   },
   {
     id: 'commute',
     label: 'Commute',
     color: '#7CC4A4',
-    image: require('../../assets/HomePage/ModoRun.png'),
+    image: require('../../assets/Modos/ModoRun.png'),
   },
 ];
 

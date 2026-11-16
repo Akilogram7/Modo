@@ -18,21 +18,21 @@ import type { CustomModeInput } from '../types/mode';
 
 
 export const CHARACTERS = [
-  require('../../assets/createMode/ModoWave.png'),
-  require('../../assets/createMode/ModoWink.png'),
-  require('../../assets/createMode/ModoExcited.png'),
-  require('../../assets/createMode/ModoPeep.png'),
-  require('../../assets/createMode/ModoDrink.png'),
-  require('../../assets/createMode/ModoHeart.png'),
-  require('../../assets/createMode/ModoFlower.png'),
-  require('../../assets/createMode/ModoQuestion.png'),
-  require('../../assets/createMode/ModoRun.png'),
-  require('../../assets/createMode/ModoStudy.png'),
-  require('../../assets/createMode/ModoSad.png'),
-  require('../../assets/createMode/ModoSleep.png'),
-  require('../../assets/createMode/ModoLazy.png'),
-  require('../../assets/createMode/ModoMusic.png'),
-  require('../../assets/createMode/ModoYippee.png'),
+  require('../../assets/Modos/ModoWave.png'),
+  require('../../assets/Modos/ModoWink.png'),
+  require('../../assets/Modos/ModoExcited.png'),
+  require('../../assets/Modos/ModoPeep.png'),
+  require('../../assets/Modos/ModoDrink.png'),
+  require('../../assets/Modos/ModoHeart.png'),
+  require('../../assets/Modos/ModoFlower.png'),
+  require('../../assets/Modos/ModoQuestion.png'),
+  require('../../assets/Modos/ModoRun.png'),
+  require('../../assets/Modos/ModoStudy.png'),
+  require('../../assets/Modos/ModoSad.png'),
+  require('../../assets/Modos/ModoSleep.png'),
+  require('../../assets/Modos/ModoLazy.png'),
+  require('../../assets/Modos/ModoMusic.png'),
+  require('../../assets/Modos/ModoYippee.png'),
 ];
 
 const COLUMNS = 5;

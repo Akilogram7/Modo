@@ -8,6 +8,8 @@ import { CHARACTERS } from './createModeScreen';
 import type { CustomMode } from '../types/mode';
 import { FloatingCloud } from '../components/AuthBackground';
 import ModoArch from '../components/ModoArch';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import BubblyPlus from '../components/BubblyPlus';
 
 // Colours only used on this screen
 const CARD = {
@@ -33,19 +35,19 @@ const MODES = [
     id: 'study',
     label: 'STUDY',
     color: CARD.study,
-    img: require('../../assets/HomePage/ModoStudy.png'),
+    img: require('../../assets/Modos/ModoStudy.png'),
   },
   {
     id: 'sleep',
     label: 'SLEEP',
     color: CARD.sleep,
-    img: require('../../assets/HomePage/ModoSleep.png'),
+    img: require('../../assets/Modos/ModoSleep.png'),
   },
   {
     id: 'commute',
     label: 'COMMUTE',
     color: CARD.commute,
-    img: require('../../assets/HomePage/ModoRun.png'),
+    img: require('../../assets/Modos/ModoRun.png'),
   },
 ] as const;
 
@@ -114,7 +116,7 @@ export default function HomeScreen({
         </View>
 
             <Image
-              source={require('../../assets/HomePage/ModoSunglasses.png')}
+              source={require('../../assets/Modos/ModoSunglasses.png')}
               style={{
                 position: 'absolute',
                 right: -5,
@@ -153,7 +155,7 @@ export default function HomeScreen({
             </Pressable>
           </View>
 
-          <Text style={styles.title}>Your Modes</Text>
+          <Text style={styles.heading}>Recent Modes</Text>
 
           {/* Mode grid */}
           <View style={styles.grid}>
@@ -197,17 +199,18 @@ export default function HomeScreen({
               </Pressable>
             ))}
 
-            {/* Create mode */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.card,
-                { backgroundColor: CARD.create },
-                pressed && styles.pressed,
-              ]}
-              onPress={onCreateMode}
-            >
-              <Text style={styles.cardLabel}>CREATE MODE</Text>
-            </Pressable>
+          {/* Create mode */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.card,
+              { backgroundColor: CARD.create, justifyContent: 'center', paddingBottom: 0 },
+              pressed && styles.pressed,
+            ]}
+            onPress={onCreateMode}
+          >
+            <BubblyPlus size={100} />
+            <Text style={[styles.cardLabel, { marginTop: 0 }]}>CREATE MODE</Text>
+          </Pressable>
           </View>
 
           {/* Achievements banner */}
@@ -219,7 +222,7 @@ export default function HomeScreen({
             onPress={onAchievements}
           >
             <Image
-              source={require('../../assets/HomePage/ClassicModo.png')}
+              source={require('../../assets/Modos/ModoYippee.png')}
               style={styles.bannerImg}
               resizeMode="contain"
             />
@@ -227,12 +230,13 @@ export default function HomeScreen({
             <Text style={styles.bannerText}>
               Your{'\n'}Achievements
             </Text>
-
-            <Ionicons
-              name="ribbon"
-              size={32}
-              color="#fff"
+            
+            <Image
+              source={require('../../assets/Modos/ModoYippee.png')}
+              style={[styles.bannerImg, { transform: [{ scaleX: -1 }] }]}
+              resizeMode="contain"
             />
+
           </Pressable>
         </ScrollView>
       </SafeAreaView>
@@ -255,8 +259,8 @@ const styles = StyleSheet.create({
   },
 
   scroll: {
-    paddingHorizontal: 20,
-    paddingBottom: 110,
+  paddingHorizontal: 20,
+  paddingBottom: 150,
   },
 
   header: {
@@ -264,22 +268,24 @@ const styles = StyleSheet.create({
   },
 
   hello: {
-    fontSize: 20,
-    fontFamily: fonts.headingBold,
-    color: colors.text,
+    fontSize: 30,
+    fontFamily: fonts.heading,
+    color: colors.heading,
+    marginTop: -10,
   },
 
   name: {
-    fontSize: 26,
-    fontFamily: fonts.bodyBold,
-    color: colors.text,
+    fontSize: 32,
+    fontFamily: fonts.logo,
+    color: colors.name,
+    marginTop: -10,
   },
 
   sub: {
-    fontSize: 14,
-    fontFamily: fonts.headingBold,
-    color: colors.text,
-    marginTop: 4,
+    fontSize: 20,
+    lineHeight: 24,
+    fontFamily: fonts.heading,
+    color: colors.heading,
   },
 
   gear: {
@@ -300,12 +306,21 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 34,
+    fontSize: 32,
     fontFamily: fonts.headingBold,
-    color: colors.text,
+    color: colors.heading,
     textAlign: 'center',
-    marginTop: 4,
-    marginBottom: 14,
+    marginTop: 12,
+    marginBottom: 20,
+  },
+
+  heading: {
+    fontSize: 32,
+    fontFamily: fonts.headingBold,
+    color: colors.otherText,
+    textAlign: 'center',
+    marginTop: 15,
+    marginBottom: -5,
   },
 
   grid: {
@@ -341,8 +356,8 @@ const styles = StyleSheet.create({
   },
 
   cardLabel: {
-    color: '#fff',
-    fontSize: 18,
+    color: colors.buttonText,
+    fontSize: 17,
     lineHeight: 24,
     fontFamily: fonts.headingBold,
     letterSpacing: 0.5,
@@ -359,15 +374,15 @@ const styles = StyleSheet.create({
     ...shadows.raised
   },
 
-  bannerImg: {
+    bannerImg: {
     width: 64,
     height: 64,
-    marginRight: 10,
   },
 
-  bannerText: {
+    bannerText: {
     flex: 1,
-    color: '#fff',
+    textAlign: 'center',
+    color: colors.buttonText,
     fontSize: 22,
     lineHeight: 26,
     fontFamily: fonts.headingBold,

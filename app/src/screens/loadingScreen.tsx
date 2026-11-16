@@ -69,7 +69,7 @@ export default function LoadingScreen() {
           resizeMode="contain"
         />
         <Animated.Image
-          source={require('../../assets/logo/ModoWave.png')}
+          source={require('../../assets/Modos/ModoWave.png')}
           style={[styles.character, { transform: [{ translateY }] }]}
           resizeMode="contain"
         />
