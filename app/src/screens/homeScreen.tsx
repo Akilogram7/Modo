@@ -68,7 +68,7 @@ export default function HomeScreen({
   const charH = (charW * 217) / 250;
 
   return (
-    
+
     <LinearGradient
       colors={[colors.gradientLight, colors.gradientMain]}
       locations={[...gradientStops]}
@@ -77,43 +77,44 @@ export default function HomeScreen({
       style={styles.bg}
     >
       {/* Background */}
-       {/* top cluster, behind and around the logo */}
-        <FloatingCloud top={0.75} size={1.5} opacity={0.50} duration={20000} startAt={0.2} from="left" />
-        <FloatingCloud top={0.90} size={2.0} opacity={0.70} duration={30000} startAt={0.6} from="right" />
-        <FloatingCloud top={0.65} size={1.0} opacity={0.35} duration={20000} startAt={0.4} from="left" />
 
-        {/* middle, faint, behind the form */}
-        <FloatingCloud top={0.5} size={2.0} opacity={0.05} duration={20000} startAt={0.1} from="right" />
-        <FloatingCloud top={0.40} size={1.5} opacity={0.10} duration={25000} startAt={0.1} from="left" />
+      {/* Top cluster, behind and around the logo */}
+      <FloatingCloud top={0.75} size={1.5} opacity={0.50} duration={20000} startAt={0.2} from="left" />
+      <FloatingCloud top={0.90} size={2.0} opacity={0.70} duration={30000} startAt={0.6} from="right" />
+      <FloatingCloud top={0.65} size={1.0} opacity={0.35} duration={20000} startAt={0.4} from="left" />
 
-        {/* bottom cluster */}
-        <FloatingCloud top={0.15} size={1.5} opacity={0.35} duration={30000} startAt={0.7} from="right" />
-        <FloatingCloud top={0.20} size={2.0} opacity={0.50} duration={20000} startAt={0.3} from="left" />
-        <FloatingCloud top={0.25} size={1.0} opacity={0.40} duration={30000} startAt={0.5} from="right" />
+      {/* Middle, faint, behind the form */}
+      <FloatingCloud top={0.5} size={2.0} opacity={0.05} duration={20000} startAt={0.1} from="right" />
+      <FloatingCloud top={0.40} size={1.5} opacity={0.10} duration={25000} startAt={0.1} from="left" />
+
+      {/* Bottom cluster */}
+      <FloatingCloud top={0.15} size={1.5} opacity={0.35} duration={30000} startAt={0.7} from="right" />
+      <FloatingCloud top={0.20} size={2.0} opacity={0.50} duration={20000} startAt={0.3} from="left" />
+      <FloatingCloud top={0.25} size={1.0} opacity={0.40} duration={30000} startAt={0.5} from="right" />
 
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         >
-         
-        {/* Header */}
-        <View style={[styles.header, { minHeight: charH * 0.8 }]}>
-          
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            right: -35,
-            top: -50,
-            opacity: 1,
-          }}
-        >
-          <ModoArch
-            width={charW * 1.35}
-            height={charH * 1.55}
-          />
-        </View>
+
+          {/* Header */}
+          <View style={[styles.header, { minHeight: charH * 0.8 }]}>
+
+            <View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                right: -35,
+                top: -50,
+                opacity: 1,
+              }}
+            >
+              <ModoArch
+                width={charW * 1.35}
+                height={charH * 1.55}
+              />
+            </View>
 
             <Image
               source={require('../../assets/Modos/ModoSunglasses.png')}
@@ -199,18 +200,18 @@ export default function HomeScreen({
               </Pressable>
             ))}
 
-          {/* Create mode */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.card,
-              { backgroundColor: CARD.create, justifyContent: 'center', paddingBottom: 0 },
-              pressed && styles.pressed,
-            ]}
-            onPress={onCreateMode}
-          >
-            <BubblyPlus size={100} />
-            <Text style={[styles.cardLabel, { marginTop: 0 }]}>CREATE MODE</Text>
-          </Pressable>
+            {/* Create mode */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.card,
+                { backgroundColor: CARD.create, justifyContent: 'center', paddingBottom: 0 },
+                pressed && styles.pressed,
+              ]}
+              onPress={onCreateMode}
+            >
+              <BubblyPlus size={100} />
+              <Text style={[styles.cardLabel, { marginTop: 0 }]}>CREATE MODE</Text>
+            </Pressable>
           </View>
 
           {/* Achievements banner */}
@@ -230,7 +231,7 @@ export default function HomeScreen({
             <Text style={styles.bannerText}>
               Your{'\n'}Achievements
             </Text>
-            
+
             <Image
               source={require('../../assets/Modos/ModoYippee.png')}
               style={[styles.bannerImg, { transform: [{ scaleX: -1 }] }]}
@@ -241,7 +242,7 @@ export default function HomeScreen({
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
-    
+
   );
 }
 
@@ -259,8 +260,8 @@ const styles = StyleSheet.create({
   },
 
   scroll: {
-  paddingHorizontal: 20,
-  paddingBottom: 150,
+    paddingHorizontal: 20,
+    paddingBottom: 150,
   },
 
   header: {
@@ -374,12 +375,12 @@ const styles = StyleSheet.create({
     ...shadows.raised
   },
 
-    bannerImg: {
+  bannerImg: {
     width: 64,
     height: 64,
   },
 
-    bannerText: {
+  bannerText: {
     flex: 1,
     textAlign: 'center',
     color: colors.buttonText,

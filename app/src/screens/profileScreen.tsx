@@ -45,9 +45,9 @@ const AVATARS = [
 
 const ACCENT = {
   avatar: backgroundColors[0],
-  save: backgroundColors[3], 
-  logout: backgroundColors[10], 
-  danger: backgroundColors[10], 
+  save: backgroundColors[3],
+  logout: backgroundColors[10],
+  danger: backgroundColors[10],
 };
 
 const DEFAULT_AVATAR = 'wave';
@@ -81,9 +81,9 @@ export default function ProfileScreen(_props: Props) {
 
   const memberSince = user?.created_at
     ? new Date(user.created_at).toLocaleDateString(undefined, {
-        month: 'long',
-        year: 'numeric',
-      })
+      month: 'long',
+      year: 'numeric',
+    })
     : null;
 
   // 3 Modos per row inside the picker sheet
@@ -227,7 +227,6 @@ export default function ProfileScreen(_props: Props) {
                 <Text style={styles.ModoSub}>Member since {memberSince}</Text>
               )}
             </View>
-
             {/* Account info */}
             <View style={styles.card}>
               <Text style={styles.cardLabel}>Name</Text>
