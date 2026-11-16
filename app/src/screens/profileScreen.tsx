@@ -227,7 +227,6 @@ export default function ProfileScreen(_props: Props) {
                 <Text style={styles.ModoSub}>Member since {memberSince}</Text>
               )}
             </View>
-            
             {/* Account info */}
             <View style={styles.card}>
               <Text style={styles.cardLabel}>Name</Text>
@@ -325,7 +324,7 @@ export default function ProfileScreen(_props: Props) {
       >
         <Pressable style={styles.backdrop} onPress={() => setPickerOpen(false)}>
           {/* Inner Pressable stops taps on the sheet from closing it */}
-          <Pressable style={styles.sheet} onPress={() => { }}>
+          <Pressable style={styles.sheet} onPress={() => {}}>
             <Text style={styles.sheetTitle}>Choose your Modo</Text>
 
             {/* Background colour */}
@@ -398,7 +397,7 @@ export default function ProfileScreen(_props: Props) {
           </Pressable>
         </Pressable>
       </Modal>
-    </LinearGradient >
+    </LinearGradient>
   );
 }
 
