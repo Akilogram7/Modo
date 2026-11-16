@@ -1,13 +1,15 @@
+
 {
   "expo": {
-    "name": "app",
+    "name": "Modo",
     "slug": "app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.akilogram7.modo"
     },
     "android": {
       "adaptiveIcon": {
@@ -16,15 +18,26 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "softwareKeyboardLayoutMode": "resize",
+      "predictiveBackGestureEnabled": false,
+      "package": "com.akilogram7.modo",
+      "permissions": [
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font",
-      "expo-asset",
-      "expo-status-bar"
-    ]
+  "expo-font",
+  "expo-asset",
+  "expo-status-bar",
+  "expo-notifications"
+],
+"extra": {
+  "eas": {
+    "projectId": "88309257-5e0c-4290-a5db-1dcbb9c7f5ff"
   }
+}
+}
 }

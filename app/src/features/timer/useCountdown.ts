@@ -1,54 +1,80 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
 
 export function useCountdown(initialSeconds: number) {
-    const [timeLeft, setTimeLeft] = useState<number>(initialSeconds);
-    const [isRunning, setIsRunning] = useState<boolean>(false);
+    const [timeLeft, setTimeLeft] = useState(initialSeconds);
+    const [isRunning, setIsRunning] = useState(false);
+    const deadlineRef = useRef<number | null>(null);
 
-    //timer changes
     useEffect(() => {
+        deadlineRef.current = null;
         setTimeLeft(initialSeconds);
         setIsRunning(false);
     }, [initialSeconds]);
 
-    // Countdown logic
     useEffect(() => {
-        if (!isRunning || timeLeft <= 0) return;
+        if (!isRunning) return;
 
-        const interval = setInterval(() => {
-            setTimeLeft(prev => Math.max(0, prev - 1));
-        }, 1000);
+        const updateTime = () => {
+            if (deadlineRef.current === null) return;
 
-        return () => clearInterval(interval);
-    }, [isRunning, timeLeft]);
+            const remaining = Math.max(
+                0,
+                Math.ceil((deadlineRef.current - Date.now()) / 1000)
+            );
 
-    //timer controls
+            setTimeLeft(remaining);
+
+            if (remaining === 0) {
+                deadlineRef.current = null;
+                setIsRunning(false);
+            }
+        };
+
+        updateTime();
+        const interval = setInterval(updateTime, 1000);
+
+        const subscription = AppState.addEventListener('change', state => {
+            if (state === 'active') updateTime();
+        });
+
+        return () => {
+            clearInterval(interval);
+            subscription.remove();
+        };
+    }, [isRunning]);
+
     const start = () => {
-        if (timeLeft > 0) {
-            setIsRunning(true);
-        }
+        if (timeLeft <= 0 || isRunning) return;
+        deadlineRef.current = Date.now() + timeLeft * 1000;
+        setIsRunning(true);
     };
 
     const pause = () => {
+        if (deadlineRef.current !== null) {
+            setTimeLeft(Math.max(
+                0,
+                Math.ceil((deadlineRef.current - Date.now()) / 1000)
+            ));
+        }
+        deadlineRef.current = null;
         setIsRunning(false);
     };
 
     const reset = () => {
+        deadlineRef.current = null;
         setIsRunning(false);
         setTimeLeft(initialSeconds);
     };
 
-    // Convert remaining seconds into hours, minutes, and seconds
     const hours = Math.floor(timeLeft / 3600);
     const minutes = Math.floor((timeLeft % 3600) / 60);
     const seconds = timeLeft % 60;
 
-    // Format each value to two digits
-    const formattedHours = hours.toString().padStart(2, '0');
-    const formattedMinutes = minutes.toString().padStart(2, '0');
-    const formattedSeconds = seconds.toString().padStart(2, '0');
-
-    // Final formatted timer
-    const formattedTime = `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+    const formattedTime = [hours, minutes, seconds]
+        .map(value => value.toString().padStart(2, '0'))
+        .join(':');
 
     return {
         timeLeft,
