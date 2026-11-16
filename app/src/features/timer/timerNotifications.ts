@@ -4,17 +4,28 @@ import { Platform } from 'react-native';
 
 const CHANNEL_ID = 'focus-timer';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// Notifications are enabled only for native builds configured to use them.
+const notificationsDisabled =
+  process.env.EXPO_PUBLIC_ENABLE_TIMER_NOTIFICATIONS !== 'true';
+
+// Configure how notifications appear when the app is open
+if (!notificationsDisabled) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 // Configure notifications and request permission if needed
 export async function setupTimerNotifications(): Promise<boolean> {
+  if (notificationsDisabled) {
+    return false;
+  }
+
   try {
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
@@ -42,6 +53,10 @@ export async function setupTimerNotifications(): Promise<boolean> {
 export async function scheduleTimerNotification(
   seconds: number
 ): Promise<string | null> {
+  if (notificationsDisabled) {
+    return null;
+  }
+
   const requestedAt = Date.now();
 
   if (!Number.isFinite(seconds) || seconds <= 0) {
@@ -57,7 +72,6 @@ export async function scheduleTimerNotification(
   try {
     // Account for time spent configuring notifications
     const elapsedSeconds = (Date.now() - requestedAt) / 1000;
-
     const remainingSeconds = Math.max(
       1,
       Math.ceil(seconds - elapsedSeconds)
@@ -87,7 +101,7 @@ export async function scheduleTimerNotification(
 export async function cancelTimerNotification(
   notificationId: string | null
 ): Promise<void> {
-  if (!notificationId) {
+  if (notificationsDisabled || !notificationId) {
     return;
   }
 
