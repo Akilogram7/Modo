@@ -1,8 +1,8 @@
 
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, shadows } from '../theme';
+import { colors } from '../../assets/theme';
 
 const TABS = [
   { key: 'home', label: 'Home', icon: 'home' },
@@ -26,23 +26,37 @@ export default function TabBar({
     <View
       style={[
         styles.bar,
-        { paddingBottom: Math.max(insets.bottom - 12, 8) },
+        {
+          backgroundColor: '#F2A56A',
+          marginHorizontal: 28,
+          marginBottom: Math.max(insets.bottom, 12) + 8,
+        },
       ]}
     >
       {TABS.map((t) => {
         const on = t.key === active;
-        const tint = on ? '#fff' : 'rgba(255,255,255,0.65)';
 
         return (
           <Pressable
             key={t.key}
             style={styles.tab}
             onPress={() => onChange(t.key)}
+            accessibilityRole="tab"
+            accessibilityLabel={t.label}
+            accessibilityState={{ selected: on }}
           >
-            <Ionicons name={t.icon} size={26} color={tint} />
-            <Text style={[styles.label, { color: tint }]}>
-              {t.label}
-            </Text>
+            <View
+              style={[
+                styles.iconContainer,
+                on && styles.activeIcon,
+              ]}
+            >
+              <Ionicons
+                name={t.icon}
+                size={25}
+                color={on ? '#60483F' : '#FFFFFF'}
+              />
+            </View>
           </Pressable>
         );
       })}
@@ -54,21 +68,37 @@ const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
     backgroundColor: colors.gradientMain,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 10,
-    ...shadows.inset,
+    borderRadius: 40,
+    marginHorizontal: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+
+    elevation: 5,
+    shadowColor: '#60483F',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
   },
 
   tab: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 46,
   },
 
-  label: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: fonts.heading,
-    marginTop: 2,
+  iconContainer: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(255,243,230,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  activeIcon: {
+    backgroundColor: '#FFF3E6',
   },
 });

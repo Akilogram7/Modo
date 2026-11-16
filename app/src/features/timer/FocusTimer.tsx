@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { fonts } from '../../theme';
+import { fonts } from '../../../assets/theme';
 import { useCountdown } from './useCountdown';
 import TimerSettings from './TimerSettings';
 import {

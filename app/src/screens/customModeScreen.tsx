@@ -2,7 +2,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensio
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { fonts, shadows } from '../theme';
+import { fonts, shadows } from '../../assets/theme';
 import { CHARACTERS } from './createModeScreen';
 import { FocusTimer } from '../features/timer';
 import type { CustomMode } from '../types/mode';

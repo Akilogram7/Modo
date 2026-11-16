@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Dimensions, Easing, Image, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, gradientStops } from '../theme';
+import { colors, gradientStops } from '../../assets/theme';
 
 const { width, height } = Dimensions.get('window');
 const SIZE = Math.sqrt(width * width + height * height) * 2;
@@ -69,7 +69,7 @@ export default function LoadingScreen() {
           resizeMode="contain"
         />
         <Animated.Image
-          source={require('../../assets/logo/ModoWave.png')}
+          source={require('../../assets/Modos/ModoWave.png')}
           style={[styles.character, { transform: [{ translateY }] }]}
           resizeMode="contain"
         />

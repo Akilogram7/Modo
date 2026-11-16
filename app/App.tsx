@@ -4,16 +4,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { Asset } from 'expo-asset';
 
-
-import { DynaPuff_400Regular } from '@expo-google-fonts/dynapuff';
-import {
-  Nunito_400Regular,
-  Nunito_700Bold,
-} from '@expo-google-fonts/nunito';
-import {
-  Baloo2_600SemiBold,
-  Baloo2_700Bold,
-} from '@expo-google-fonts/baloo-2';
+import { DynaPuff_400Regular, DynaPuff_500Medium } from '@expo-google-fonts/dynapuff';
+import { Baloo2_600SemiBold, Baloo2_700Bold} from '@expo-google-fonts/baloo-2';
 
 import LoadingScreen from './src/screens/loadingScreen';
 import HomeScreen from './src/screens/homeScreen';
@@ -34,16 +26,11 @@ import {
 } from './src/services/customModes';
 
 const IMAGES = [
-  require('./assets/HomePage/ModoStudy.png'),
-  require('./assets/HomePage/ModoSleep.png'),
-  require('./assets/HomePage/ModoRun.png'),
-  require('./assets/HomePage/ModoSunglasses.png'),
-  require('./assets/HomePage/ClassicModo1.png'),
-  require('./assets/HomePage/CloudBackground.png'),
-  require('./assets/HomePage/Plus.png'),
-  require('./assets/createMode/ModoStudy.png'),
-  require('./assets/createMode/ModoSleep.png'),
-  require('./assets/createMode/ModoRun.png'),
+  require('./assets/Modos/ModoStudy.png'),
+  require('./assets/Modos/ModoSleep.png'),
+  require('./assets/Modos/ModoRun.png'),
+  require('./assets/Modos/ModoSunglasses.png'),
+  require('./assets/Modos/ModoWave.png'),
 ];
 
 // AuthProvider wraps everything so any screen can use useAuth()
@@ -60,8 +47,7 @@ function AppContent() {
 
   const [fontsLoaded] = useFonts({
     DynaPuff_400Regular,
-    Nunito_400Regular,
-    Nunito_700Bold,
+    DynaPuff_500Medium,
     Baloo2_600SemiBold,
     Baloo2_700Bold,
   });

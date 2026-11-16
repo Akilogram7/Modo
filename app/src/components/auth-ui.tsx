@@ -8,13 +8,13 @@ import {
   View,
   type TextInputProps,
 } from 'react-native'
-import { colors as theme, fonts, shadows } from '../theme'
+import { colors as theme, fonts, shadows } from '../../assets/theme'
 
 export const colors = {
   night: '#FF923F',     // dark text on cream button
   panel: '#fb9c53',      // the orange input boxes
   line: '#7d5b3d',       // border of inputs
-  text: theme.text,      // labels and headings
+  text: theme.heading,      // labels and headings
   muted: '#3b1c03',      //typing text colour
   placeholder: '#00000050', //colour in boxes
   gold: '#D55D00',       // focus colour and link orange

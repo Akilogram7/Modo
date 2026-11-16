@@ -1,12 +1,15 @@
-
-import { Button, Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, gradientStops, gradientDirection, fonts, shadows } from '../theme';
+import { colors, gradientStops, gradientDirection, fonts, shadows } from '../../assets/theme';
 import { useAuth } from '../providers/AuthProvider';
 import { CHARACTERS } from './createModeScreen';
 import type { CustomMode } from '../types/mode';
+import { FloatingCloud } from '../components/AuthBackground';
+import ModoArch from '../components/ModoArch';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import BubblyPlus from '../components/BubblyPlus';
 
 // Colours only used on this screen
 const CARD = {
@@ -32,19 +35,19 @@ const MODES = [
     id: 'study',
     label: 'STUDY',
     color: CARD.study,
-    img: require('../../assets/HomePage/ModoStudy.png'),
+    img: require('../../assets/Modos/ModoStudy.png'),
   },
   {
     id: 'sleep',
     label: 'SLEEP',
     color: CARD.sleep,
-    img: require('../../assets/HomePage/ModoSleep.png'),
+    img: require('../../assets/Modos/ModoSleep.png'),
   },
   {
     id: 'commute',
     label: 'COMMUTE',
     color: CARD.commute,
-    img: require('../../assets/HomePage/ModoRun.png'),
+    img: require('../../assets/Modos/ModoRun.png'),
   },
 ] as const;
 
@@ -61,12 +64,11 @@ export default function HomeScreen({
   const displayName = user?.user_metadata?.display_name ?? name;
   const { width } = useWindowDimensions();
 
-  const charW = Math.min(width * 0.55, 260);
+  const charW = Math.min(width * 0.48, 260);
   const charH = (charW * 217) / 250;
 
-
   return (
-    
+
     <LinearGradient
       colors={[colors.gradientLight, colors.gradientMain]}
       locations={[...gradientStops]}
@@ -75,22 +77,47 @@ export default function HomeScreen({
       style={styles.bg}
     >
       {/* Background */}
-      <Image
-        source={require('../../assets/HomePage/CloudBackground.png')}
-        style={styles.backgroundImage}
-        resizeMode="stretch"
-        pointerEvents="none"
-      />
+
+      {/* Top cluster, behind and around the logo */}
+      <FloatingCloud top={0.75} size={1.5} opacity={0.50} duration={20000} startAt={0.2} from="left" />
+      <FloatingCloud top={0.90} size={2.0} opacity={0.70} duration={30000} startAt={0.6} from="right" />
+      <FloatingCloud top={0.65} size={1.0} opacity={0.35} duration={20000} startAt={0.4} from="left" />
+
+      {/* Middle, faint, behind the form */}
+      <FloatingCloud top={0.5} size={2.0} opacity={0.05} duration={20000} startAt={0.1} from="right" />
+      <FloatingCloud top={0.40} size={1.5} opacity={0.10} duration={25000} startAt={0.1} from="left" />
+
+      {/* Bottom cluster */}
+      <FloatingCloud top={0.15} size={1.5} opacity={0.35} duration={30000} startAt={0.7} from="right" />
+      <FloatingCloud top={0.20} size={2.0} opacity={0.50} duration={20000} startAt={0.3} from="left" />
+      <FloatingCloud top={0.25} size={1.0} opacity={0.40} duration={30000} startAt={0.5} from="right" />
 
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         >
+
           {/* Header */}
           <View style={[styles.header, { minHeight: charH * 0.8 }]}>
+
+            <View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                right: -35,
+                top: -50,
+                opacity: 1,
+              }}
+            >
+              <ModoArch
+                width={charW * 1.35}
+                height={charH * 1.55}
+              />
+            </View>
+
             <Image
-              source={require('../../assets/HomePage/ModoSunglasses.png')}
+              source={require('../../assets/Modos/ModoSunglasses.png')}
               style={{
                 position: 'absolute',
                 right: -5,
@@ -129,7 +156,7 @@ export default function HomeScreen({
             </Pressable>
           </View>
 
-          <Text style={styles.title}>Your Modes</Text>
+          <Text style={styles.heading}>Recent Modes</Text>
 
           {/* Mode grid */}
           <View style={styles.grid}>
@@ -177,18 +204,13 @@ export default function HomeScreen({
             <Pressable
               style={({ pressed }) => [
                 styles.card,
-                { backgroundColor: CARD.create },
+                { backgroundColor: CARD.create, justifyContent: 'center', paddingBottom: 0 },
                 pressed && styles.pressed,
               ]}
               onPress={onCreateMode}
             >
-              <Image
-                source={require('../../assets/HomePage/Plus.png')}
-                style={styles.plus}
-                resizeMode="contain"
-              />
-
-              <Text style={styles.cardLabel}>CREATE MODE</Text>
+              <BubblyPlus size={100} />
+              <Text style={[styles.cardLabel, { marginTop: 0 }]}>CREATE MODE</Text>
             </Pressable>
           </View>
 
@@ -201,7 +223,7 @@ export default function HomeScreen({
             onPress={onAchievements}
           >
             <Image
-              source={require('../../assets/HomePage/ClassicModo1.png')}
+              source={require('../../assets/Modos/ModoYippee.png')}
               style={styles.bannerImg}
               resizeMode="contain"
             />
@@ -210,16 +232,17 @@ export default function HomeScreen({
               Your{'\n'}Achievements
             </Text>
 
-            <Ionicons
-              name="ribbon"
-              size={32}
-              color="#fff"
+            <Image
+              source={require('../../assets/Modos/ModoYippee.png')}
+              style={[styles.bannerImg, { transform: [{ scaleX: -1 }] }]}
+              resizeMode="contain"
             />
+
           </Pressable>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
-    
+
   );
 }
 
@@ -238,7 +261,7 @@ const styles = StyleSheet.create({
 
   scroll: {
     paddingHorizontal: 20,
-    paddingBottom: 110,
+    paddingBottom: 150,
   },
 
   header: {
@@ -246,22 +269,24 @@ const styles = StyleSheet.create({
   },
 
   hello: {
-    fontSize: 20,
-    fontFamily: fonts.bodyBold,
-    color: colors.text,
+    fontSize: 30,
+    fontFamily: fonts.heading,
+    color: colors.heading,
+    marginTop: -10,
   },
 
   name: {
-    fontSize: 26,
-    fontFamily: fonts.bodyBold,
-    color: colors.text,
+    fontSize: 32,
+    fontFamily: fonts.logo,
+    color: colors.name,
+    marginTop: -10,
   },
 
   sub: {
-    fontSize: 14,
-    fontFamily: fonts.bodyBold,
-    color: colors.text,
-    marginTop: 4,
+    fontSize: 20,
+    lineHeight: 24,
+    fontFamily: fonts.heading,
+    color: colors.heading,
   },
 
   gear: {
@@ -282,12 +307,21 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 34,
+    fontSize: 32,
     fontFamily: fonts.headingBold,
-    color: colors.text,
+    color: colors.heading,
     textAlign: 'center',
-    marginTop: 4,
-    marginBottom: 14,
+    marginTop: 12,
+    marginBottom: 20,
+  },
+
+  heading: {
+    fontSize: 32,
+    fontFamily: fonts.headingBold,
+    color: colors.otherText,
+    textAlign: 'center',
+    marginTop: 15,
+    marginBottom: -5,
   },
 
   grid: {
@@ -323,8 +357,8 @@ const styles = StyleSheet.create({
   },
 
   cardLabel: {
-    color: '#fff',
-    fontSize: 18,
+    color: colors.buttonText,
+    fontSize: 17,
     lineHeight: 24,
     fontFamily: fonts.headingBold,
     letterSpacing: 0.5,
@@ -344,12 +378,12 @@ const styles = StyleSheet.create({
   bannerImg: {
     width: 64,
     height: 64,
-    marginRight: 10,
   },
 
   bannerText: {
     flex: 1,
-    color: '#fff',
+    textAlign: 'center',
+    color: colors.buttonText,
     fontSize: 22,
     lineHeight: 26,
     fontFamily: fonts.headingBold,
