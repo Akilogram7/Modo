@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, AppState, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { Asset } from 'expo-asset';
@@ -25,13 +25,34 @@ import PresetModeScreen, { type PresetKey } from './src/screens/presetModes';
 import AchievementsScreen from './src/screens/achievementsScreen';
 import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { AuthGate } from './src/components/AuthGate';
-import { startModeSession } from './src/stats/modeSessions';
+import { fetchLastUsed, startModeSession } from './src/stats/modeSessions';
 import CustomModeScreen from './src/screens/customModeScreen';
+import ModesScreen from './src/screens/modesScreen';
 import type { CustomMode } from './src/types/mode';
 import {
   createCustomMode,
+  deleteCustomMode,
   fetchCustomModes,
+  saveCustomModeOrder,
+  updateCustomMode,
 } from './src/services/customModes';
+import {
+  NO_GROUPS,
+  fetchGroupRows,
+  findNewHostStarts,
+  groupsSignature,
+  joinModeGroup,
+  leaveModeGroup,
+  setGroupModeRunning,
+  shareMode,
+  stopSharingMode,
+  toModeGroups,
+  type JoinedMode,
+  type ModeGroups,
+} from './src/services/modeGroups';
+
+// How often we check if a friend started a shared mode (only while you've joined one)
+const GROUP_CHECK_MS = 8000;
 
 const IMAGES = [
   require('./assets/HomePage/ModoStudy.png'),
@@ -72,15 +93,33 @@ function AppContent() {
   const [minTimePassed, setMinTimePassed] = useState(false);
   const [tab, setTab] = useState<TabKey>('home');
   const [screen, setScreen] = useState<
-    'home' | 'mode' | 'customMode' | 'createMode' | 'achievements' | 'profile' | 'stats'
+    'home' | 'mode' | 'customMode' | 'createMode' | 'achievements' | 'profile' | 'stats' | 'modes'
   >('home');
 
   const [preset, setPreset] = useState<PresetKey>('study');
-  const [createFrom, setCreateFrom] = useState<'home' | 'mode'>('home');
+  const [createFrom, setCreateFrom] = useState<'home' | 'mode' | 'modes'>('home');
+  // The mode being edited on the create mode screen (null = making a new one)
+  const [editingMode, setEditingMode] = useState<CustomMode | null>(null);
+
+  // Sharing: modes the user shares with friends, and friends' modes they joined
+  const [groups, setGroups] = useState<ModeGroups>(NO_GROUPS);
+  const groupsSignatureRef = useRef('');
+  const lastHostStartsRef = useRef<Record<string, number>>({});
+
+  // When each mode was last started, so the home screen can show the most recent ones
+  const [lastUsed, setLastUsed] = useState<Record<string, number>>({});
   const [customModes, setCustomModes] = useState<CustomMode[]>([]);
   const [activeCustomMode, setActiveCustomMode] = useState<CustomMode | null>(null);
   const [modesLoading, setModesLoading] = useState(false);
   const [savingMode, setSavingMode] = useState(false);
+
+  // Who is logged in right now (so a slow reply from the last account gets ignored)
+  const userIdRef = useRef<string | undefined>(undefined);
+  userIdRef.current = session?.user.id;
+
+  // The custom mode that's on screen right now (so we don't ask to join a mode you're already in)
+  const activeModeIdRef = useRef<string | null>(null);
+  activeModeIdRef.current = screen === 'customMode' ? (activeCustomMode?.id ?? null) : null;
 
   useEffect(() => {
     Asset.loadAsync(IMAGES)
@@ -97,6 +136,12 @@ function AppContent() {
   useEffect(() => {
     let cancelled = false;
 
+    // Start fresh so nothing from the last account is left over
+    setGroups(NO_GROUPS);
+    groupsSignatureRef.current = '';
+    lastHostStartsRef.current = {};
+    setLastUsed({});
+
     if (!session?.user.id) {
       setTab('home');
       setScreen('home');
@@ -110,6 +155,14 @@ function AppContent() {
     setCustomModes([]);
     setActiveCustomMode(null);
     setModesLoading(true);
+
+    // These two load in the background. The app still works if they fail.
+    loadGroups().catch((error) => console.warn('Could not load shared modes:', error));
+    fetchLastUsed()
+      .then((times) => {
+        if (!cancelled) setLastUsed((prev) => ({ ...times, ...prev }));
+      })
+      .catch((error) => console.warn('Could not load recently used modes:', error));
 
     fetchCustomModes()
       .then((modes) => {
@@ -137,6 +190,66 @@ function AppContent() {
     };
   }, [session?.user.id]);
 
+  // While you've joined a friend's mode, keep checking if they started it
+  // (this also picks up any changes they made to its settings)
+  const hasJoinedModes = groups.joined.length > 0;
+  useEffect(() => {
+    if (!session?.user.id || !hasJoinedModes) return;
+
+    const timer = setInterval(() => {
+      if (AppState.currentState === 'active') {
+        loadGroups().catch(() => {});
+      }
+    }, GROUP_CHECK_MS);
+
+    return () => clearInterval(timer);
+  }, [session?.user.id, hasJoinedModes]);
+
+  // Loads everything about sharing, and asks to join if a friend just started a mode
+  async function loadGroups() {
+    const userId = userIdRef.current;
+    const rows = await fetchGroupRows();
+    if (userIdRef.current !== userId) return; // logged out or switched account while loading
+
+    // Only update the screen when something actually changed
+    const signature = groupsSignature(rows);
+    if (signature !== groupsSignatureRef.current) {
+      groupsSignatureRef.current = signature;
+      setGroups(toModeGroups(rows));
+    }
+
+    const justStarted = findNewHostStarts(rows, lastHostStartsRef.current);
+    if (justStarted.length === 0) return;
+
+    const joinedModes = toModeGroups(rows).joined;
+    for (const row of justStarted) {
+      const joined = joinedModes.find((j) => j.groupId === row.group_id);
+      if (!joined || activeModeIdRef.current === joined.mode.id) continue;
+
+      Alert.alert(
+        `${joined.hostName} started ${joined.mode.name.trim() || 'a mode'}`,
+        'Want to join in?',
+        [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Join', onPress: () => joinRunningMode(joined) },
+        ],
+      );
+    }
+  }
+
+  // Opens a friend's mode after tapping Join
+  function joinRunningMode(joined: JoinedMode) {
+    setActiveCustomMode(joined.mode);
+    void startModeSession(joined.mode.id);
+    markUsed(joined.mode.id);
+    setScreen('customMode');
+  }
+
+  // Moves a mode to the front of the home screen
+  function markUsed(modeId: string) {
+    setLastUsed((prev) => ({ ...prev, [modeId]: Date.now() }));
+  }
+
   // Loading screen while assets load AND while we check if someone's already logged in
   if (
     !fontsLoaded ||
@@ -154,10 +267,94 @@ function AppContent() {
     if (next === 'home') setScreen('home');
     if (next === 'profile') setScreen('profile');
     if (next === 'stats') setScreen('stats');
+    if (next === 'modes') {
+      setScreen('modes');
+      // Refresh who joined your shared modes
+      loadGroups().catch(() => {});
+    }
   }
 
-  async function openCreateMode(from: 'home' | 'mode') {
+  // If the user shares any modes, friends need to know when one starts or ends
+  const sharesAnyMode = Object.keys(groups.hosted).length > 0;
+
+  function tellFriendsModeEnded() {
+    if (sharesAnyMode) void setGroupModeRunning(null, false);
+  }
+
+  // Starting a mode works the same from the home screen and the modes screen
+  function startPresetMode(mode: PresetKey) {
+    startModeSession(mode);
+    markUsed(mode);
+    tellFriendsModeEnded(); // a shared mode can't still be running if you switched to this one
+    setPreset(mode);
+    setScreen('mode');
+  }
+
+  function startCustomMode(mode: CustomMode) {
+    setActiveCustomMode(mode);
+    void startModeSession(mode.id);
+    markUsed(mode.id);
+
+    // Only the host starts a shared mode for everyone.
+    // (Friends who joined it aren't in groups.hosted, so for them it only starts on their phone.)
+    if (groups.hosted[mode.id]) {
+      void setGroupModeRunning(mode.id, true);
+    } else {
+      tellFriendsModeEnded();
+    }
+
+    setScreen('customMode');
+  }
+
+  // Deletes a mode from Supabase, then takes it off every screen
+  async function removeCustomMode(mode: CustomMode) {
+    await deleteCustomMode(mode.id);
+    setCustomModes((prev) => prev.filter((m) => m.id !== mode.id));
+    // Deleting a shared mode also ends the sharing
+    if (groups.hosted[mode.id]) loadGroups().catch(() => {});
+  }
+
+  // Sharing actions. Each one reloads the sharing info so every screen is up to date.
+  async function shareCustomMode(mode: CustomMode) {
+    await shareMode(mode.id);
+    await loadGroups();
+  }
+
+  async function stopSharingCustomMode(mode: CustomMode) {
+    await stopSharingMode(mode.id);
+    await loadGroups();
+  }
+
+  async function joinWithCode(code: string) {
+    await joinModeGroup(code);
+    await loadGroups();
+  }
+
+  async function leaveJoinedMode(joined: JoinedMode) {
+    await leaveModeGroup(joined.groupId);
+    await loadGroups();
+  }
+
+  // Shows the new order right away, and puts the old one back if saving fails
+  async function reorderCustomModes(next: CustomMode[]) {
+    const previous = customModes;
+    setCustomModes(next);
+
+    try {
+      await saveCustomModeOrder(next.map((m) => m.id));
+    } catch (error) {
+      setCustomModes(previous);
+      throw error;
+    }
+  }
+
+  // Pass a mode as `editing` to edit it instead of making a new one
+  async function openCreateMode(
+    from: 'home' | 'mode' | 'modes',
+    editing: CustomMode | null = null,
+  ) {
     setCreateFrom(from);
+    setEditingMode(editing);
 
     if (!charsReady) {
       setLoadingCreate(true);
@@ -182,6 +379,9 @@ function AppContent() {
     return <LoadingScreen />;
   }
 
+  // The user's own modes plus friends' modes they joined (for the home and stats screens)
+  const allCustomModes = [...customModes, ...groups.joined.map((joined) => joined.mode)];
+
   return (
     <SafeAreaProvider>
       {/* Logged out: shows sign in / sign up. Logged in: shows everything inside. */}
@@ -189,17 +389,11 @@ function AppContent() {
         <View style={{ flex: 1 }}>
           {screen === 'home' && (
             <HomeScreen
-              customModes={customModes}
-              onCustomModePress={(mode) => {
-                setActiveCustomMode(mode);
-                void startModeSession(mode.id);
-                setScreen('customMode');
-              }}
-              onModePress={(mode) => {
-                startModeSession(mode);
-                setPreset(mode);
-                setScreen('mode');
-              }}
+              customModes={allCustomModes}
+              lastUsed={lastUsed}
+              onSeeAllModes={() => goToTab('modes')}
+              onCustomModePress={startCustomMode}
+              onModePress={startPresetMode}
               onCreateMode={() => openCreateMode('home')}
               onAchievements={() => setScreen('achievements')}
             />
@@ -210,6 +404,7 @@ function AppContent() {
               mode={preset}
               onChangeSettings={() => openCreateMode('mode')}
               onEnd={() => {
+                tellFriendsModeEnded();
                 setTab('home');
                 setScreen('home');
               }}
@@ -220,6 +415,7 @@ function AppContent() {
             <CustomModeScreen
               mode={activeCustomMode}
               onEnd={() => {
+                tellFriendsModeEnded();
                 setActiveCustomMode(null);
                 setTab('home');
                 setScreen('home');
@@ -231,10 +427,29 @@ function AppContent() {
             <ProfileScreen onBack={() => goToTab('home')} />
           )}
 
-          {screen === 'stats' && <StatsScreen />}
+          {screen === 'stats' && <StatsScreen customModes={allCustomModes} />}
+
+          {screen === 'modes' && (
+            <ModesScreen
+              customModes={customModes}
+              onPresetPress={startPresetMode}
+              onCustomModePress={startCustomMode}
+              onCreateMode={() => openCreateMode('modes')}
+              onEditMode={(mode) => openCreateMode('modes', mode)}
+              onDeleteMode={removeCustomMode}
+              onReorder={reorderCustomModes}
+              hostedShares={groups.hosted}
+              joinedModes={groups.joined}
+              onShareMode={shareCustomMode}
+              onStopSharing={stopSharingCustomMode}
+              onJoinWithCode={joinWithCode}
+              onLeaveMode={leaveJoinedMode}
+            />
+          )}
 
           {screen === 'createMode' && (
             <CreateModeScreen
+              initialMode={editingMode}
               onBack={() => setScreen(createFrom)}
               onCreate={async (mode) => {
                 if (savingMode) return;
@@ -242,14 +457,25 @@ function AppContent() {
                 setSavingMode(true);
 
                 try {
-                  const newMode = await createCustomMode(mode);
+                  if (editingMode) {
+                    // Editing: save the changes over the existing mode
+                    const updatedMode = await updateCustomMode(editingMode.id, mode);
 
-                  setCustomModes((prev) => [...prev, newMode]);
+                    setCustomModes((prev) =>
+                      prev.map((m) => (m.id === updatedMode.id ? updatedMode : m)),
+                    );
+                  } else {
+                    const newMode = await createCustomMode(mode);
 
-                  console.log('Saved custom mode:', newMode);
+                    setCustomModes((prev) => [...prev, newMode]);
 
-                  setScreen('home');
-                  setTab('home');
+                    console.log('Saved custom mode:', newMode);
+                  }
+
+                  // Go back to the modes screen if that's where they came from
+                  const backTo = createFrom === 'modes' ? 'modes' : 'home';
+                  setScreen(backTo);
+                  setTab(backTo);
                 } catch (error) {
                   console.error('Failed to save custom mode:', error);
 
@@ -268,7 +494,10 @@ function AppContent() {
             <AchievementsScreen onBack={() => setScreen('home')} />
           )}
 
-          {(screen === 'home' || screen === 'profile' || screen === 'stats') && (
+          {(screen === 'home' ||
+            screen === 'profile' ||
+            screen === 'stats' ||
+            screen === 'modes') && (
             <View
               style={{
                 position: 'absolute',

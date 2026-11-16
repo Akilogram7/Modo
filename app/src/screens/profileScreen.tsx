@@ -180,7 +180,7 @@ export default function ProfileScreen({ onBack }: Props) {
                     autoComplete="name"
                     textContentType="name"
                     returnKeyType="done"
-                    maxLength={40}
+                    maxLength={12}
                     onSubmitEditing={saveName}
                   />
                   <View style={styles.editActions}>

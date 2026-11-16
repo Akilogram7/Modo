@@ -38,16 +38,35 @@ import {
   type ModeSession,
   type ModeWeekSummary,
 } from '../stats/statsMath';
+import { CHARACTERS } from './createModeScreen';
+import type { CustomMode } from '../types/mode';
 
 const CHART_HEIGHT = 140;
-const MODE_BY_ID: Record<string, StatMode> = Object.fromEntries(
-  STAT_MODES.map((m) => [m.id, m] as const),
-);
+
+// Every mode the stats screen shows: the 3 presets first,
+// then the user's custom modes in the same order as the home screen
+function buildStatModes(customModes: CustomMode[]): StatMode[] {
+  const custom: StatMode[] = customModes.map((mode) => ({
+    id: mode.id,
+    label: mode.name.trim() || 'Custom mode',
+    color: mode.color,
+    image: mode.character !== null ? CHARACTERS[mode.character] : undefined,
+  }));
+  return [...STAT_MODES, ...custom];
+}
+
+// Finds a mode by its id (undefined if that mode was deleted)
+type ModeLookup = Record<string, StatMode | undefined>;
+
+type Props = {
+  customModes?: CustomMode[];
+};
 
 // Set this to true to see the fake demo data again (handy for testing or showing off the app)
 const USE_SAMPLE_DATA: boolean = false;
 
-export default function StatsScreen() {
+export default function StatsScreen({ customModes = [] }: Props) {
+  const modes = buildStatModes(customModes);
   const [data, setData] = useState<{ sessions: ModeSession[]; now: Date } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -101,7 +120,7 @@ export default function StatsScreen() {
           ) : data.sessions.length === 0 ? (
             <EmptyState />
           ) : (
-            <StatsContent sessions={data.sessions} now={data.now} />
+            <StatsContent sessions={data.sessions} now={data.now} modes={modes} />
           )}
         </ScrollView>
       </SafeAreaView>
@@ -110,8 +129,17 @@ export default function StatsScreen() {
 }
 
 // Everything on the screen once the sessions have loaded
-function StatsContent({ sessions, now }: { sessions: ModeSession[]; now: Date }) {
-  const modeIds = STAT_MODES.map((m) => m.id);
+function StatsContent({
+  sessions,
+  now,
+  modes,
+}: {
+  sessions: ModeSession[];
+  now: Date;
+  modes: StatMode[];
+}) {
+  const modeIds = modes.map((m) => m.id);
+  const modeById: ModeLookup = Object.fromEntries(modes.map((m) => [m.id, m] as const));
   const summaries = summarizeWeek(sessions, modeIds, now);
   const days = dailyBreakdown(sessions, modeIds, now);
   const headline = pickHeadline(summaries);
@@ -119,19 +147,19 @@ function StatsContent({ sessions, now }: { sessions: ModeSession[]; now: Date })
 
   return (
     <>
-      {headline && <HeadlineCard headline={headline} />}
+      {headline && <HeadlineCard headline={headline} modeById={modeById} />}
 
       <Text style={styles.sectionTitle}>Your week</Text>
-      <WeekCard days={days} summaries={summaries} />
+      <WeekCard days={days} summaries={summaries} modes={modes} modeById={modeById} />
 
       <Text style={styles.sectionTitle}>Streaks</Text>
-      <StreaksCard sessions={sessions} now={now} />
+      <StreaksCard sessions={sessions} now={now} modes={modes} />
 
       <Text style={styles.sectionTitle}>Weekly goals</Text>
-      <GoalsCard summaries={summaries} now={now} />
+      <GoalsCard summaries={summaries} now={now} modeById={modeById} />
 
       <Text style={styles.sectionTitle}>When you use your modes</Text>
-      <TimeOfDayCard sessions={lastFourWeeks} />
+      <TimeOfDayCard sessions={lastFourWeeks} modes={modes} />
 
       {/* Only shown with the demo data until Modo really tracks these */}
       {USE_SAMPLE_DATA && (
@@ -146,9 +174,15 @@ function StatsContent({ sessions, now }: { sessions: ModeSession[]; now: Date })
 
 // ---------- The big card at the top ----------
 
-function HeadlineCard({ headline }: { headline: NonNullable<Headline> }) {
+function HeadlineCard({
+  headline,
+  modeById,
+}: {
+  headline: NonNullable<Headline>;
+  modeById: ModeLookup;
+}) {
   const s = headline.summary;
-  const mode = MODE_BY_ID[s.modeId];
+  const mode = modeById[s.modeId];
   if (!mode) return null;
 
   const title =
@@ -167,14 +201,26 @@ function HeadlineCard({ headline }: { headline: NonNullable<Headline> }) {
         <Text style={styles.headlineTitle}>{title}</Text>
         <Text style={styles.headlineSub}>{subtitle}</Text>
       </View>
-      <Image source={mode.image} style={styles.headlineImg} resizeMode="contain" />
+      {mode.image !== undefined && (
+        <Image source={mode.image} style={styles.headlineImg} resizeMode="contain" />
+      )}
     </View>
   );
 }
 
 // ---------- Bar chart + time per mode ----------
 
-function WeekCard({ days, summaries }: { days: DayBreakdown[]; summaries: ModeWeekSummary[] }) {
+function WeekCard({
+  days,
+  summaries,
+  modes,
+  modeById,
+}: {
+  days: DayBreakdown[];
+  summaries: ModeWeekSummary[];
+  modes: StatMode[];
+  modeById: ModeLookup;
+}) {
   const maxDay = Math.max(...days.map((d) => d.total), 1);
   const weekTotal = summaries.reduce((sum, s) => sum + s.minutes, 0);
 
@@ -190,7 +236,7 @@ function WeekCard({ days, summaries }: { days: DayBreakdown[]; summaries: ModeWe
             <View style={[styles.barTrack, day.isFuture && styles.barTrackFuture]}>
               {day.total > 0 && (
                 <View style={[styles.barStack, { height: (day.total / maxDay) * CHART_HEIGHT }]}>
-                  {STAT_MODES.map((m) =>
+                  {modes.map((m) =>
                     day.byMode[m.id] > 0 ? (
                       <View key={m.id} style={{ flex: day.byMode[m.id], backgroundColor: m.color }} />
                     ) : null,
@@ -205,15 +251,19 @@ function WeekCard({ days, summaries }: { days: DayBreakdown[]; summaries: ModeWe
 
       {/* Each mode's total, which also works as the chart's colour key */}
       {summaries.map((s) => {
-        const mode = MODE_BY_ID[s.modeId];
+        const mode = modeById[s.modeId];
         if (!mode) return null;
         return (
           <View key={s.modeId} style={styles.modeRow}>
             <View style={[styles.modeIcon, { backgroundColor: mode.color }]}>
-              <Image source={mode.image} style={styles.modeIconImg} resizeMode="contain" />
+              {mode.image !== undefined && (
+                <Image source={mode.image} style={styles.modeIconImg} resizeMode="contain" />
+              )}
             </View>
             <View style={styles.modeInfo}>
-              <Text style={styles.modeName}>{mode.label}</Text>
+              <Text style={styles.modeName} numberOfLines={1}>
+                {mode.label}
+              </Text>
               <Text style={styles.modeMeta}>
                 Used {s.timesUsed} {s.timesUsed === 1 ? 'time' : 'times'}
               </Text>
@@ -246,10 +296,19 @@ function ChangePill({ change }: { change: number }) {
 
 // ---------- Streaks ----------
 
-function StreaksCard({ sessions, now }: { sessions: ModeSession[]; now: Date }) {
+function StreaksCard({
+  sessions,
+  now,
+  modes,
+}: {
+  sessions: ModeSession[];
+  now: Date;
+  modes: StatMode[];
+}) {
   return (
+    // Three across, and extra modes wrap onto the next row
     <View style={[styles.card, styles.streakCard]}>
-      {STAT_MODES.map((m) => {
+      {modes.map((m) => {
         const streak = currentStreak(sessions, m.id, now);
         return (
           <View key={m.id} style={styles.streakItem}>
@@ -267,11 +326,19 @@ function StreaksCard({ sessions, now }: { sessions: ModeSession[]; now: Date }) 
 
 // ---------- Goals ----------
 
-function GoalsCard({ summaries, now }: { summaries: ModeWeekSummary[]; now: Date }) {
+function GoalsCard({
+  summaries,
+  now,
+  modeById,
+}: {
+  summaries: ModeWeekSummary[];
+  now: Date;
+  modeById: ModeLookup;
+}) {
   return (
     <View style={styles.card}>
       {SAMPLE_GOALS.map((goal, i) => {
-        const mode = MODE_BY_ID[goal.modeId];
+        const mode = modeById[goal.modeId];
         if (!mode) return null;
 
         const p = goalProgress(goal, summaries.find((s) => s.modeId === goal.modeId), now);
@@ -313,15 +380,17 @@ function GoalsCard({ summaries, now }: { summaries: ModeWeekSummary[]; now: Date
 
 // ---------- Time of day ----------
 
-function TimeOfDayCard({ sessions }: { sessions: ModeSession[] }) {
+function TimeOfDayCard({ sessions, modes }: { sessions: ModeSession[]; modes: StatMode[] }) {
   return (
     <View style={styles.card}>
-      {STAT_MODES.map((m, i) => {
+      {modes.map((m, i) => {
         const pattern = timeOfDayPattern(sessions, m.id);
         return (
           <View key={m.id} style={i > 0 && styles.timeSpacing}>
             <View style={styles.timeTop}>
-              <Text style={styles.modeName}>{m.label}</Text>
+              <Text style={[styles.modeName, styles.timeName]} numberOfLines={1}>
+                {m.label}
+              </Text>
               <Text style={styles.timeUsual}>
                 {pattern.usualTime ? `Usually ${pattern.usualTime}` : 'Not used yet'}
               </Text>
@@ -632,11 +701,13 @@ const styles = StyleSheet.create({
   // Streaks
   streakCard: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    rowGap: 18,
     paddingHorizontal: 8,
   },
 
   streakItem: {
-    flex: 1,
+    width: '33.33%',
     alignItems: 'center',
     paddingHorizontal: 4,
   },
@@ -714,6 +785,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'baseline',
     marginBottom: 8,
+  },
+
+  timeName: {
+    flexShrink: 1,
+    marginRight: 10,
   },
 
   timeUsual: {
