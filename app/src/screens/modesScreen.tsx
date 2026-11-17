@@ -13,46 +13,86 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, gradientStops, gradientDirection, fonts, shadows } from '../../assets/theme';
+import {
+  backgroundColors,
+  colors,
+  gradientStops,
+  gradientDirection,
+  fonts,
+  shadows,
+} from '../../assets/theme';
 import { CHARACTERS } from './createModeScreen';
 import type { PresetKey } from './presetModes';
-import type { CustomMode } from '../types/mode';
+import type { CustomMode, CustomModeInput } from '../types/mode';
 import type { HostedShare, JoinedMode } from '../services/modeGroups';
 import { JoinWithCodeModal, ShareModeModal } from '../components/ModeShareModals';
 import { FloatingCloud } from '../components/AuthBackground';
+import BubblyPlus from '../components/BubblyPlus'; // change this path if BubblyPlus.tsx lives somewhere else
 
 // Colours only used on this screen (same ones as the home screen cards)
 const CARD = {
   study: '#5B6BB5',
   sleep: '#D4709A',
-  commute: '#7CC4A4',
+  commute: backgroundColors[3], // the light green from theme.ts
   create: '#9B8AE0',
 };
 
-const PRESETS: { id: PresetKey; label: string; color: string; img: ImageSourcePropType }[] = [
+// The 3 modes that come with the app.
+// character = index into CHARACTERS, the rest is what the preset has switched on.
+const PRESETS: {
+  id: PresetKey;
+  label: string;
+  color: string;
+  img: ImageSourcePropType;
+  character: number;
+  timerMinutes?: number;
+  weather?: boolean;
+}[] = [
   {
     id: 'study',
     label: 'Study',
     color: CARD.study,
     img: require('../../assets/Modos/ModoStudy.png'),
+    character: 9,
+    timerMinutes: 120,
   },
   {
     id: 'sleep',
     label: 'Sleep',
     color: CARD.sleep,
     img: require('../../assets/Modos/ModoSleep.png'),
+    character: 11,
   },
   {
     id: 'commute',
     label: 'Commute',
     color: CARD.commute,
     img: require('../../assets/Modos/ModoRun.png'),
+    character: 8,
+    weather: true,
   },
 ];
+
+// What the Create Mode screen starts with when you edit a preset
+function starterFor(preset: (typeof PRESETS)[number]): CustomModeInput {
+  return {
+    name: preset.label,
+    color: preset.color,
+    character: preset.character,
+    timerEnabled: !!preset.timerMinutes,
+    timerDuration: preset.timerMinutes ? preset.timerMinutes * 60 : null,
+    musicEnabled: false,
+    playlistUrl: null,
+    playlistName: null,
+    weatherEnabled: !!preset.weather,
+  };
+}
 
 type Props = {
   customModes: CustomMode[];
   onPresetPress: (mode: PresetKey) => void;
+  // Editing a preset opens Create Mode with the preset's settings filled in (saves as your own mode)
+  onEditPreset: (starter: CustomModeInput) => void;
   onCustomModePress: (mode: CustomMode) => void;
   onCreateMode: () => void;
   onEditMode: (mode: CustomMode) => void;
@@ -72,6 +112,7 @@ type Props = {
 export default function ModesScreen({
   customModes,
   onPresetPress,
+  onEditPreset,
   onCustomModePress,
   onCreateMode,
   onEditMode,
@@ -152,6 +193,16 @@ export default function ModesScreen({
     setDeletingId(null);
   }
 
+  // Share and delete aren't available on the built-in presets yet
+  function presetNotice(action: 'share' | 'delete') {
+    Alert.alert(
+      action === 'share' ? "Can't share a preset yet" : "Can't delete a preset",
+      action === 'share'
+        ? 'Tap the pencil to make your own copy of this mode. Then you can share your copy.'
+        : 'Preset modes come with the app. Tap the pencil to make your own copy and change it.',
+    );
+  }
+
   function confirmLeave(joined: JoinedMode) {
     Alert.alert(
       `Leave ${modeName(joined.mode)}?`,
@@ -192,26 +243,11 @@ export default function ModesScreen({
           <Text style={styles.title}>Modes</Text>
           <Text style={styles.hint}>Tap a mode to start it.</Text>
 
-          {/* The 3 modes that come with the app */}
-          <Text style={styles.sectionTitle}>Preset modes</Text>
-          <View style={styles.list}>
-            {PRESETS.map((preset) => (
-              <ModeBar
-                key={preset.id}
-                name={preset.label}
-                color={preset.color}
-                image={preset.img}
-                disabled={reordering}
-                onPress={() => onPresetPress(preset.id)}
-              />
-            ))}
-          </View>
-
-          {/* Modes the user made */}
+          {/* Presets and the user's own modes, all in one list */}
           <View style={styles.sectionRow}>
             <Text style={[styles.sectionTitle, styles.sectionTitleInRow]}>Your modes</Text>
 
-            {/* Reordering only makes sense with 2 or more modes */}
+            {/* Reordering only makes sense with 2 or more of your own modes */}
             {customModes.length > 1 && (
               <Pressable
                 onPress={reordering ? finishReordering : startReordering}
@@ -236,6 +272,41 @@ export default function ModesScreen({
           </View>
 
           <View style={styles.list}>
+            {/* The 3 modes that come with the app (they always stay at the top) */}
+            {PRESETS.map((preset) => (
+              <ModeBar
+                key={preset.id}
+                name={preset.label}
+                color={preset.color}
+                image={preset.img}
+                disabled={reordering || deletingId !== null}
+                onPress={() => onPresetPress(preset.id)}
+              >
+                {!reordering && (
+                  <>
+                    <CircleButton
+                      icon="share-social"
+                      label={`Share ${preset.label}`}
+                      dimmed
+                      onPress={() => presetNotice('share')}
+                    />
+                    <CircleButton
+                      icon="pencil"
+                      label={`Edit ${preset.label}`}
+                      disabled={deletingId !== null}
+                      onPress={() => onEditPreset(starterFor(preset))}
+                    />
+                    <CircleButton
+                      icon="trash"
+                      label={`Delete ${preset.label}`}
+                      dimmed
+                      onPress={() => presetNotice('delete')}
+                    />
+                  </>
+                )}
+              </ModeBar>
+            ))}
+
             {shownModes.length === 0 && (
               <View style={styles.emptyCard}>
                 <Text style={styles.emptyText}>
@@ -309,11 +380,7 @@ export default function ModesScreen({
                 accessibilityRole="button"
               >
                 <View style={styles.barImgBox}>
-                  <Ionicons
-                    name="add-circle"
-                    size={48}
-                    color={colors.heading}
-                  />
+                  <BubblyPlus size={48} />
                 </View>
                 <View style={styles.barText}>
                   <Text style={styles.barName}>Create a mode</Text>
@@ -323,13 +390,15 @@ export default function ModesScreen({
           </View>
 
           {/* Friends' modes the user joined with a code */}
-          <View style={styles.sectionRow}>
-            <Text style={[styles.sectionTitle, styles.sectionTitleInRow]}>Shared with you</Text>
+          <View style={[styles.sectionRow, styles.sharedRow]}>
+            <Text style={[styles.sectionTitle, styles.sectionTitleInRow, styles.sharedTitle]}>
+              Shared with you
+            </Text>
 
             <Pressable
               onPress={() => setJoinOpen(true)}
               disabled={reordering}
-              style={({ pressed }) => [styles.reorderButton, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.reorderButton, styles.joinButton, pressed && styles.pressed]}
               accessibilityRole="button"
             >
               <Ionicons name="enter-outline" size={16} color={colors.heading} />
@@ -441,17 +510,19 @@ function ModeBar({
   );
 }
 
-// The small white round buttons (edit, delete, move up, move down)
+// The small white round buttons (share, edit, delete, move up, move down)
 function CircleButton({
   icon,
   label,
   disabled,
+  dimmed,
   loading,
   onPress,
 }: {
   icon: ComponentProps<typeof Ionicons>['name'];
   label: string;
   disabled?: boolean;
+  dimmed?: boolean; // looks greyed out but can still be tapped (shows a message)
   loading?: boolean;
   onPress: () => void;
 }) {
@@ -462,7 +533,7 @@ function CircleButton({
       hitSlop={6}
       style={({ pressed }) => [
         styles.circle,
-        disabled && !loading && styles.circleDisabled,
+        ((disabled && !loading) || dimmed) && styles.circleDisabled,
         pressed && styles.pressed,
       ]}
       accessibilityRole="button"
@@ -515,9 +586,10 @@ const styles = StyleSheet.create({
     aspectRatio: 786 / 1602,
   },
 
+  // extra space at the bottom so the last card scrolls up above the tab bar
   scroll: {
     paddingHorizontal: 20,
-    paddingBottom: 110,
+    paddingBottom: 220,
   },
 
   title: {
@@ -553,9 +625,20 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
+  // more breathing room around "Shared with you"
+  sharedRow: {
+    marginTop: 48,
+    marginBottom: 18,
+    gap: 12,
+  },
+
   sectionTitleInRow: {
     marginTop: 0,
     marginBottom: 0,
+  },
+
+  sharedTitle: {
+    flexShrink: 1,
   },
 
   reorderButton: {
@@ -573,6 +656,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.18,
     shadowRadius: 4,
+  },
+
+  joinButton: {
+    flexShrink: 0,
   },
 
   reorderText: {
@@ -663,13 +750,14 @@ const styles = StyleSheet.create({
   emptyCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 22,
-    padding: 18,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
     ...shadows.raised,
   },
 
   emptyText: {
     fontSize: 15,
-    lineHeight: 20,
+    lineHeight: 22,
     fontFamily: fonts.bodyBold,
     color: colors.heading,
     opacity: 0.75,

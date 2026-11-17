@@ -20,7 +20,7 @@ import { AuthGate } from './src/components/AuthGate';
 import { fetchLastUsed, startModeSession } from './src/stats/modeSessions';
 import CustomModeScreen from './src/screens/customModeScreen';
 import ModesScreen from './src/screens/modesScreen';
-import type { CustomMode } from './src/types/mode';
+import type { CustomMode, CustomModeInput } from './src/types/mode';
 import {
   createCustomMode,
   deleteCustomMode,
@@ -86,6 +86,8 @@ function AppContent() {
   const [createFrom, setCreateFrom] = useState<'home' | 'mode' | 'modes'>('home');
   // The mode being edited on the create mode screen (null = making a new one)
   const [editingMode, setEditingMode] = useState<CustomMode | null>(null);
+  // Settings to start a NEW mode with (used when you edit a preset from the modes screen)
+  const [prefillMode, setPrefillMode] = useState<CustomModeInput | null>(null);
 
   // Sharing: modes the user shares with friends, and friends' modes they joined
   const [groups, setGroups] = useState<ModeGroups>(NO_GROUPS);
@@ -334,13 +336,16 @@ function AppContent() {
     }
   }
 
-  // Pass a mode as `editing` to edit it instead of making a new one
+  // Pass a mode as `editing` to edit it instead of making a new one.
+  // Pass `prefill` to make a NEW mode that starts with those settings (editing a preset).
   async function openCreateMode(
     from: 'home' | 'mode' | 'modes',
     editing: CustomMode | null = null,
+    prefill: CustomModeInput | null = null,
   ) {
     setCreateFrom(from);
     setEditingMode(editing);
+    setPrefillMode(prefill);
 
     if (!charsReady) {
       setLoadingCreate(true);
@@ -419,6 +424,7 @@ function AppContent() {
             <ModesScreen
               customModes={customModes}
               onPresetPress={startPresetMode}
+              onEditPreset={(starter) => openCreateMode('modes', null, starter)}
               onCustomModePress={startCustomMode}
               onCreateMode={() => openCreateMode('modes')}
               onEditMode={(mode) => openCreateMode('modes', mode)}
@@ -435,7 +441,7 @@ function AppContent() {
 
           {screen === 'createMode' && (
             <CreateModeScreen
-              initialMode={editingMode}
+              initialMode={editingMode ?? prefillMode}
               onBack={() => setScreen(createFrom)}
               onCreate={async (mode) => {
                 if (savingMode) return;
