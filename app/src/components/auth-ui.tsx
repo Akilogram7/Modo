@@ -1,6 +1,7 @@
 import { useState, type PropsWithChildren } from 'react'
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -143,7 +144,7 @@ export const authStyles = StyleSheet.create({
 })
 
 const styles = StyleSheet.create({
-    card: {
+  card: {
     backgroundColor: colors.card,
     borderRadius: 36,
     paddingHorizontal: 22,
@@ -153,22 +154,28 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 40,
-    lineHeight: 35,
     fontFamily: fonts.headingBold,
     color: colors.text,
     textAlign: 'center',
-    marginBottom: 30,
+    // iOS clips text when lineHeight < fontSize, so it gets a taller line box.
+    // Android keeps the original values (it looked fine there).
+    ...Platform.select({
+      ios: { lineHeight: 52, marginBottom: 18 },
+      default: { lineHeight: 35, marginBottom: 30 },
+    }),
   },
   field: {
     marginBottom: 10,
   },
   label: {
-  fontSize: 18,
-  lineHeight: 15,
+    fontSize: 18,
     fontFamily: fonts.headingBold,
-  color: colors.text,
-  marginBottom: 4,
-  marginLeft: 14,
+    color: colors.text,
+    marginLeft: 14,
+    ...Platform.select({
+      ios: { lineHeight: 24, marginBottom: 0 },
+      default: { lineHeight: 15, marginBottom: 4 },
+    }),
   },
   input: {
     backgroundColor: colors.panel,
