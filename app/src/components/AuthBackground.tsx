@@ -86,7 +86,6 @@ export default function AuthBackground({ children }: PropsWithChildren) {
       end={gradientDirection.end}
       style={{ flex: 1 }}
     >
-      
     {/*top*/}
     <FloatingCloud top={0.75} size={1.5} opacity={0.5} duration={50000} startAt={0.2} from="left" />
     <FloatingCloud top={0.9} size={2.0} opacity={0.7} duration={45000} startAt={0.6} from="right" />

@@ -74,6 +74,7 @@ return (
             placeholder="What should Modo call you?"
             autoComplete="name"
             textContentType="name"
+            maxLength={12}
           />
 
           <AuthField

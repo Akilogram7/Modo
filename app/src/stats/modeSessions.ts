@@ -49,3 +49,24 @@ export async function fetchSessions(since: Date, now: Date = new Date()): Promis
     endedAt: row.ended_at ?? now.toISOString(),
   }));
 }
+
+// When each mode was last started, for the home screen's quick access.
+// Gives back { modeId: time in milliseconds }.
+export async function fetchLastUsed(): Promise<Record<string, number>> {
+  const { data, error } = await supabase
+    .from('mode_sessions')
+    .select('mode_id, started_at')
+    .order('started_at', { ascending: false })
+    .limit(300);
+
+  if (error) throw new Error(error.message);
+
+  const lastUsed: Record<string, number> = {};
+  for (const row of (data ?? []) as { mode_id: string; started_at: string }[]) {
+    // Rows come newest first, so the first time we see a mode is its latest use
+    if (lastUsed[row.mode_id] === undefined) {
+      lastUsed[row.mode_id] = new Date(row.started_at).getTime();
+    }
+  }
+  return lastUsed;
+}

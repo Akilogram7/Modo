@@ -116,23 +116,28 @@ function CharacterOption({
 type Props = {
   onBack?: () => void;
   onCreate?: (mode: CustomModeInput) => void;
+  // pass in an existing mode to edit it instead of making a new one
+  initialMode?: CustomModeInput | null;
 };
-export default function CreateModeScreen({ onBack, onCreate }: Props) {
+export default function CreateModeScreen({ onBack, onCreate, initialMode }: Props) {
+  const editing = !!initialMode;
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const GAP = 12;
   const swatchW = (width - 48 - 28 - GAP * 3) / 4; // screen minus side padding, panel padding, and gaps*
   const charSize = (width - 48 - 20) / COLUMNS; // screen minus side padding and panel padding*
-  const [name, setName] = useState('');
-  const [color, setColor] = useState(backgroundColors[0]);
-  const [character, setCharacter] = useState<number | null>(null);
+  const [name, setName] = useState(initialMode?.name ?? '');
+  const [color, setColor] = useState(initialMode?.color ?? backgroundColors[0]);
+  const [character, setCharacter] = useState<number | null>(initialMode?.character ?? null);
   //timer&#x20;
-  const [timerEnabled, setTimerEnabled] = useState<boolean>(false);
-  const [timerMinutes, setTimerMinutes] = useState<number>(25);
+  const [timerEnabled, setTimerEnabled] = useState<boolean>(initialMode?.timerEnabled ?? false);
+  const [timerMinutes, setTimerMinutes] = useState<number>(
+    initialMode?.timerDuration ? Math.round(initialMode.timerDuration / 60) : 25,
+  );
   //music
-  const [playlistUrl, setPlaylistUrl] = useState('');
-  const [musicEnabled, setMusicEnabled] = useState(false);
-  const [playlistName, setPlaylistName] = useState('');
+  const [playlistUrl, setPlaylistUrl] = useState(initialMode?.playlistUrl ?? '');
+  const [musicEnabled, setMusicEnabled] = useState(initialMode?.musicEnabled ?? false);
+  const [playlistName, setPlaylistName] = useState(initialMode?.playlistName ?? '');
   // text and buttons follow the chosen background colour
   const dark = isDark(color);
   const textColor = dark ? '#FFFFFF' : darken(color, 0.45);
@@ -151,7 +156,7 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 180 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.title, { color: textColor }]}>CREATE MODE</Text>
+        <Text style={[styles.title, { color: textColor }]}>{editing ? 'EDIT MODE' : 'CREATE MODE'}</Text>
         <Text style={[styles.label, { color: textColor }]}>EDIT NAME</Text>
         <TextInput
           style={[styles.panel, styles.input, { color: textColor }]}
@@ -261,7 +266,7 @@ export default function CreateModeScreen({ onBack, onCreate }: Props) {
               })
             }
           >
-            <Text style={styles.buttonText}>Create Mode</Text>
+            <Text style={styles.buttonText}>{editing ? 'Save Changes' : 'Create Mode'}</Text>
           </Pressable>
         </View>
       </ScrollView>

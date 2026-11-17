@@ -20,6 +20,11 @@ const CARD = {
   achievements: '#F5A623'
 };
 
+// The home screen is quick access: it only shows this many modes, most recently used first.
+// Everything else lives on the Modes screen. (Keep it an odd number so the grid stays even
+// with the Create Mode card.)
+const HOME_MODE_LIMIT = 5;
+
 type Props = {
   name?: string;
   onModePress?: (mode: 'study' | 'sleep' | 'commute') => void;
@@ -28,6 +33,9 @@ type Props = {
   onSettings?: () => void;
   customModes?: CustomMode[];
   onCustomModePress?: (mode: CustomMode) => void;
+  // when each mode was last started: { modeId: time in milliseconds }
+  lastUsed?: Record<string, number>;
+  onSeeAllModes?: () => void;
 };
 
 const MODES = [
@@ -59,13 +67,48 @@ export default function HomeScreen({
   onSettings,
   customModes = [],
   onCustomModePress,
+  lastUsed = {},
+  onSeeAllModes,
 }: Props) {
   const { user } = useAuth();
-  const displayName = user?.user_metadata?.display_name ?? name;
+  const fullName: string = user?.user_metadata?.display_name ?? name;
+  // Names longer than 12 characters get cut off so they don't cover the Modo image
+  const nameLetters = Array.from(fullName);
+  const displayName =
+    nameLetters.length > 12 ? nameLetters.slice(0, 11).join('') + '…' : fullName;
   const { width } = useWindowDimensions();
 
   const charW = Math.min(width * 0.48, 260);
   const charH = (charW * 217) / 250;
+
+
+  // Every mode as a card: presets first, then the user's modes
+  const allCards = [
+    ...MODES.map((m) => ({
+      key: m.id as string,
+      label: m.label as string,
+      color: m.color,
+      img: m.img as number | undefined,
+      onPress: () => onModePress?.(m.id),
+    })),
+    ...customModes.map((mode) => ({
+      key: mode.id,
+      label: mode.name || 'CUSTOM MODE',
+      color: mode.color,
+      img: mode.character !== null ? (CHARACTERS[mode.character] as number | undefined) : undefined,
+      onPress: () => onCustomModePress?.(mode),
+    })),
+  ];
+
+  // Most recently used first. Modes that were never used keep their usual order after those.
+  const shownCards = allCards
+    .map((card, index) => ({ card, index }))
+    .sort(
+      (a, b) =>
+        (lastUsed[b.card.key] ?? 0) - (lastUsed[a.card.key] ?? 0) || a.index - b.index,
+    )
+    .slice(0, HOME_MODE_LIMIT)
+    .map((item) => item.card);
 
   return (
 
@@ -160,42 +203,22 @@ export default function HomeScreen({
 
           {/* Mode grid */}
           <View style={styles.grid}>
-            {MODES.map((m) => (
+            {/* Presets and user-created modes use the same card layout. */}
+            {shownCards.map((card) => (
               <Pressable
-                key={m.id}
+                key={card.key}
                 style={({ pressed }) => [
                   styles.card,
-                  { backgroundColor: m.color },
+                  { backgroundColor: card.color },
                   pressed && styles.pressed,
                 ]}
-                onPress={() => onModePress?.(m.id)}
+                onPress={card.onPress}
               >
-                <Image
-                  source={m.img}
-                  style={styles.cardImg}
-                  resizeMode="contain"
-                />
-
-                <Text style={styles.cardLabel}>{m.label}</Text>
-              </Pressable>
-            ))}
-
-            {/* User-created modes use the same card layout as presets. */}
-            {customModes.map((mode) => (
-              <Pressable
-                key={mode.id}
-                style={({ pressed }) => [
-                  styles.card,
-                  { backgroundColor: mode.color },
-                  pressed && styles.pressed,
-                ]}
-                onPress={() => onCustomModePress?.(mode)}
-              >
-                {mode.character !== null && CHARACTERS[mode.character] !== undefined && (
-                  <Image source={CHARACTERS[mode.character]} style={styles.cardImg} resizeMode="contain" />
+                {card.img !== undefined && (
+                  <Image source={card.img} style={styles.cardImg} resizeMode="contain" />
                 )}
                 <Text style={styles.cardLabel} numberOfLines={2} adjustsFontSizeToFit>
-                  {mode.name || 'CUSTOM MODE'}
+                  {card.label}
                 </Text>
               </Pressable>
             ))}
@@ -213,6 +236,18 @@ export default function HomeScreen({
               <Text style={[styles.cardLabel, { marginTop: 0 }]}>CREATE MODE</Text>
             </Pressable>
           </View>
+
+          {/* Only shows when some modes didn't fit on the home screen */}
+          {allCards.length > shownCards.length && (
+            <Pressable
+              style={({ pressed }) => [styles.seeAll, pressed && styles.pressed]}
+              onPress={onSeeAllModes}
+              accessibilityRole="button"
+            >
+              <Text style={styles.seeAllText}>See all {allCards.length} modes</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.heading} />
+            </Pressable>
+          )}
 
           {/* Achievements banner */}
           <Pressable
@@ -362,6 +397,30 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontFamily: fonts.headingBold,
     letterSpacing: 0.5,
+  },
+
+  seeAll: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 14,
+    height: 36,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+  },
+
+  seeAllText: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontFamily: fonts.headingBold,
+    color: colors.heading,
   },
 
   banner: {

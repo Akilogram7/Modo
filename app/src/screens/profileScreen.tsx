@@ -241,7 +241,7 @@ export default function ProfileScreen(_props: Props) {
                     autoComplete="name"
                     textContentType="name"
                     returnKeyType="done"
-                    maxLength={40}
+                    maxLength={12}
                     onSubmitEditing={saveName}
                   />
                   <View style={styles.editActions}>

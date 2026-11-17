@@ -13,7 +13,7 @@ export type StatMode = {
   id: string;
   label: string;
   color: string;
-  image: ImageSourcePropType;
+  image?: ImageSourcePropType; // custom modes might not have a character picked
 };
 
 // Same colours and characters as the home screen cards
