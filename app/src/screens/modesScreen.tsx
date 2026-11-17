@@ -486,6 +486,9 @@ function modeName(mode: CustomMode) {
 // "25 min timer and Spotify playlist", "25 min timer", "No features yet"...
 function featureSummary(mode: CustomMode) {
   const parts: string[] = [];
+  if (mode.weatherEnabled) {
+    parts.push('Weather');
+  }
 
   if (mode.timerEnabled && mode.timerDuration !== null) {
     parts.push(`${Math.round(mode.timerDuration / 60)} min timer`);
