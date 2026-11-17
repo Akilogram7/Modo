@@ -20,6 +20,7 @@ import { endModeSession } from '../stats/modeSessions';
 import { MusicSettings } from '../features/music';
 export type PresetKey = 'study' | 'sleep' | 'commute';
 import { useAuth } from '../providers/AuthProvider';
+import { WeatherCard } from '../features/weather/WeatherCard';
 import {
   normalizeSpotifyPlaylist,
   openSpotifyPlaylist,
@@ -124,6 +125,7 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
   const c = presetModeColors[mode];
   const modoW = Math.min(width * 0.6, 260);
   const [timerEnabled, setTimerEnabled] = useState(true);
+  const [weatherEnabled, setWeatherEnabled] = useState(true);
   //Supabase auth session (used to load/save preset music)
   const { session } = useAuth();
   const supportsMusic = mode === 'study' || mode === 'commute';
@@ -238,10 +240,13 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                     ? music.enabled
                     : r.label === 'TIMER' && mode === 'study'
                       ? timerEnabled
-                      : r.checked;
+                      : r.label === 'WEATHER' && mode === 'commute'
+                        ? weatherEnabled
+                        : r.checked;
                 const canToggle =
                   (r.label === 'PLAYLIST' && supportsMusic) ||
-                  (r.label === 'TIMER' && mode === 'study');
+                  (r.label === 'TIMER' && mode === 'study') ||
+                  (r.label === 'WEATHER' && mode === 'commute');
                 const toggleDisabled =
                   r.label === 'PLAYLIST' && (musicLoading || musicSaving);
                 return (
@@ -251,14 +256,31 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                       accessibilityRole={canToggle ? 'checkbox' : undefined}
                       accessibilityState={canToggle ? { checked: isChecked, disabled: toggleDisabled } : undefined}
                       onPress={() => {
-                        if (r.label === 'TIMER' && mode === 'study') {
-                          setTimerEnabled((prev) => !prev);
-                        } else if (r.label === 'PLAYLIST' && supportsMusic) {
+                        if (r.label === 'TIMER' && mode === 'study') { } else if (r.label === 'PLAYLIST' && supportsMusic) {
+                          const nextEnabled = !music.enabled;
+
                           setMusic((prev) => ({
                             ...prev,
-                            enabled: !prev.enabled,
+                            enabled: nextEnabled,
                           }));
-                          setShowMusicSettings(true);
+
+                          setShowMusicSettings(nextEnabled);
+
+                          if (!nextEnabled) {
+                            void savePresetMusic(mode as MusicPresetKey, {
+                              ...music,
+                              enabled: false,
+                            }).catch((error) => {
+                              console.error('Failed to disable music:', error);
+                              Alert.alert(
+                                'Save failed',
+                                'Unable to save your music preference.',
+                              );
+                            });
+                          }
+                        }
+                        else if (r.label === 'WEATHER' && mode === 'commute') {
+                          setWeatherEnabled((prev) => !prev);
                         }
                       }}
                       style={styles.row}
@@ -280,9 +302,16 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                         {r.label}
                       </Text>
                     </Pressable>
-                    {r.box && (
-                      <View style={[styles.placeholderBox, { backgroundColor: c.accent }]} />
-                    )}
+                    {mode === 'commute' && r.label === 'WEATHER' ? (
+                      weatherEnabled ? <WeatherCard /> : null
+                    ) : r.box ? (
+                      <View
+                        style={[
+                          styles.placeholderBox,
+                          { backgroundColor: c.accent },
+                        ]}
+                      />
+                    ) : null}
                   </View>
                 );
               })}
@@ -295,9 +324,8 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                 accentColor={c.accent}
               />
             )}
-            {supportsMusic && !musicLoading && showMusicSettings && (
+            {supportsMusic && !musicLoading && music.enabled && showMusicSettings && (
               <View style={styles.musicSettingsPanel}>
-                {music.enabled && (
                   <MusicSettings
                     playlistUrl={music.playlistUrl}
                     onPlaylistChange={(url) =>
@@ -316,7 +344,6 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                     textColor={c.text}
                     accentColor={c.accent}
                   />
-                )}
                 <Pressable
                   disabled={musicSaving}
                   onPress={handleSaveMusic}

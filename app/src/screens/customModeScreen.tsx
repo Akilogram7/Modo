@@ -9,6 +9,8 @@ import type { CustomMode } from '../types/mode';
 import { endModeSession } from '../stats/modeSessions';
 import { MusicSettings } from '../features/music';
 import { openSpotifyPlaylist } from '../features/music';
+import { WeatherCard } from '../features/weather/WeatherCard';
+import { useEffect, useState } from 'react';
 
 type Props = { mode: CustomMode; onEnd: () => void };
 
@@ -30,11 +32,26 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
   const accent = darken(mode.color, 0.4);
   const textColor = '#FFFFFF';
   const modoW = Math.min(width * 0.6, 260);
+  const [timerEnabled, setTimerEnabled] = useState(mode.timerEnabled);
+  const [weatherEnabled, setWeatherEnabled] = useState(mode.weatherEnabled);
+  const [musicEnabled, setMusicEnabled] = useState(mode.musicEnabled);
 
   const finish = () => {
     void endModeSession();
     onEnd();
   };
+
+  useEffect(() => {
+    setTimerEnabled(mode.timerEnabled);
+    setWeatherEnabled(mode.weatherEnabled);
+    setMusicEnabled(mode.musicEnabled);
+  }, [
+    mode.id,
+    mode.timerEnabled,
+    mode.weatherEnabled,
+    mode.musicEnabled,
+  ]);
+
 
   return (
     <LinearGradient
@@ -55,56 +72,155 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
           <Image source={characterImage} style={{ width: modoW, height: modoW * 0.75, alignSelf: 'center' }} resizeMode="contain" />
         )}
 
-        <View style={[styles.panel, { backgroundColor: darken(mode.color, 0.08) }]}>
-          <View style={styles.row}>
-            <View style={[styles.box, { backgroundColor: mode.timerEnabled ? '#FFFFFF' : accent, borderColor: accent }]}>
-              {mode.timerEnabled && <Ionicons name="checkmark" size={24} color={accent} />}
-            </View>
-            {/* timer */}
-            <Text style={[styles.rowText, { color: textColor }]}>TIMER</Text>
-          </View>
-          {mode.timerEnabled && mode.timerDuration !== null && (
-            <FocusTimer
-              initialDurationSeconds={mode.timerDuration}
-              textColor={textColor}
-              accentColor={accent}
-            />
+        <View
+          style={[
+            styles.panel,
+            { backgroundColor: darken(mode.color, 0.08) },
+          ]}
+        >
+
+
+          {/* TIMER — only available if enabled when creating the mode */}
+          {mode.timerEnabled && (
+            <>
+              <Pressable
+                style={styles.row}
+                onPress={() => setTimerEnabled((prev) => !prev)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: timerEnabled }}
+              >
+                <View
+                  style={[
+                    styles.box,
+                    {
+                      backgroundColor: timerEnabled ? '#FFFFFF' : accent,
+                      borderColor: accent,
+                    },
+                  ]}
+                >
+                  {timerEnabled && (
+                    <Ionicons name="checkmark" size={24} color={accent} />
+                  )}
+                </View>
+
+                <Text style={[styles.rowText, { color: textColor }]}>
+                  TIMER
+                </Text>
+              </Pressable>
+
+              {timerEnabled && mode.timerDuration !== null && (
+                <FocusTimer
+                  initialDurationSeconds={mode.timerDuration}
+                  textColor={textColor}
+                  accentColor={accent}
+                />
+              )}
+            </>
           )}
-          {!mode.timerEnabled && (
-            <Text style={[styles.note, { color: textColor }]}>No features are enabled yet.</Text>
+
+          {/* WEATHER — only available if enabled when creating the mode */}
+          {mode.weatherEnabled && (
+            <>
+              <Pressable
+                style={[styles.row, { marginTop: 20 }]}
+                onPress={() => setWeatherEnabled((prev) => !prev)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: weatherEnabled }}
+              >
+                <View
+                  style={[
+                    styles.box,
+                    {
+                      backgroundColor: weatherEnabled ? '#FFFFFF' : accent,
+                      borderColor: accent,
+                    },
+                  ]}
+                >
+                  {weatherEnabled && (
+                    <Ionicons name="checkmark" size={24} color={accent} />
+                  )}
+                </View>
+
+                <Text style={[styles.rowText, { color: textColor }]}>
+                  WEATHER
+                </Text>
+              </Pressable>
+
+              {weatherEnabled && <WeatherCard />}
+            </>
           )}
+
+          {/* Only show this when the mode has no saved features */}
+          {!mode.timerEnabled &&
+            !mode.musicEnabled &&
+            !mode.weatherEnabled && (
+              <Text style={[styles.note, { color: textColor }]}>
+                No features are enabled yet.
+              </Text>
+            )}
+
+
+          {/* MUSIC — only available if enabled when creating the mode */}
+          {mode.musicEnabled && (
+            <Pressable
+              style={[styles.row, { marginTop: 20 }]}
+              onPress={() => setMusicEnabled((prev) => !prev)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: musicEnabled }}
+            >
+              <View
+                style={[
+                  styles.box,
+                  {
+                    backgroundColor: musicEnabled ? '#FFFFFF' : accent,
+                    borderColor: accent,
+                  },
+                ]}
+              >
+                {musicEnabled && (
+                  <Ionicons name="checkmark" size={24} color={accent} />
+                )}
+              </View>
+
+              <Text style={[styles.rowText, { color: textColor }]}>
+                MUSIC
+              </Text>
+            </Pressable>
+          )}
+
+          {/* Spotify button — only visible when Music is checked */}
+          {mode.musicEnabled && musicEnabled && mode.playlistUrl && (
+            <Pressable
+              onPress={async () => {
+                try {
+                  await openSpotifyPlaylist(mode.playlistUrl!);
+                } catch {
+                  Alert.alert(
+                    'Unable to open Spotify',
+                    'Please check your playlist link.',
+                  );
+                }
+              }}
+              style={({ pressed }) => [
+                styles.spotifyButton,
+                pressed && { opacity: 0.8 },
+              ]}
+            >
+              <Text style={styles.spotifyIcon}>♫</Text>
+
+              <Text style={styles.spotifyButtonText} numberOfLines={2}>
+                OPEN SPOTIFY
+                {'\n'}
+                {mode.playlistName?.trim() || 'YOUR PLAYLIST'}
+              </Text>
+            </Pressable>
+          )}
+
+          {/* end mode button */}
           <Pressable style={[styles.button, { backgroundColor: accent }]} onPress={finish}>
             <Text style={[styles.buttonText, { color: textColor }]}>END MODE</Text>
           </Pressable>
         </View>
-
-        {/* music */}
-        {mode.musicEnabled && mode.playlistUrl && (
-          <Pressable
-            onPress={async () => {
-              try {
-                await openSpotifyPlaylist(mode.playlistUrl!);
-              } catch {
-                Alert.alert(
-                  'Unable to open Spotify',
-                  'Please check your playlist link.',
-                );
-              }
-            }}
-            style={({ pressed }) => [
-              styles.spotifyButton,
-              pressed && { opacity: 0.8 },
-            ]}
-          >
-            <Text style={styles.spotifyIcon}>♫</Text>
-
-            <Text style={styles.spotifyButtonText} numberOfLines={2}>
-              OPEN SPOTIFY
-              {'\n'}
-              {mode.playlistName?.trim() || 'YOUR PLAYLIST'}
-            </Text>
-          </Pressable>
-        )}
       </ScrollView>
     </LinearGradient>
 

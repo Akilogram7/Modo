@@ -19,6 +19,7 @@ function toModeColumns(mode: NewCustomMode) {
             ? mode.timerDuration
             : null,
 
+
         feature_settings: {
             music: {
                 enabled: mode.musicEnabled,
@@ -29,7 +30,11 @@ function toModeColumns(mode: NewCustomMode) {
                     ? mode.playlistName
                     : null,
             },
+            weather: {
+                enabled: mode.weatherEnabled,
+            },
         },
+
     };
 }
 
@@ -46,6 +51,7 @@ export function toCustomMode(row: any): CustomMode {
         musicEnabled: row.feature_settings?.music?.enabled ?? false,
         playlistUrl: row.feature_settings?.music?.playlistUrl ?? null,
         playlistName: row.feature_settings?.music?.playlistName ?? null,
+        weatherEnabled: row.feature_settings?.weather?.enabled ?? false,
     };
 
 }

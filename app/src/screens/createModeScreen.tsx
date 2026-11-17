@@ -90,26 +90,26 @@ function CharacterOption({
   const rotate = wiggle.interpolate({ inputRange: [-1, 1], outputRange: ['-10deg', '10deg'] });
   return (
     <Pressable onPress={onPress} style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-        {/* the glow: a white, blurred copy of the same image behind the Modo */}
-        <Animated.Image
-          source={source}
-          resizeMode="contain"
-          blurRadius={12}
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            width: size * 0.95,
-            height: size * 0.95,
-            tintColor: '#fff',
-            opacity: glow,
-            transform: [{ rotate }, { scale: 1.12 }],
-          }}
-        />
-        <Animated.Image
-          source={source}
-          resizeMode="contain"
-          style={{ width: size * 0.95, height: size * 0.95, transform: [{ rotate }] }}
-        />
+      {/* the glow: a white, blurred copy of the same image behind the Modo */}
+      <Animated.Image
+        source={source}
+        resizeMode="contain"
+        blurRadius={12}
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          width: size * 0.95,
+          height: size * 0.95,
+          tintColor: '#fff',
+          opacity: glow,
+          transform: [{ rotate }, { scale: 1.12 }],
+        }}
+      />
+      <Animated.Image
+        source={source}
+        resizeMode="contain"
+        style={{ width: size * 0.95, height: size * 0.95, transform: [{ rotate }] }}
+      />
     </Pressable>
   );
 }
@@ -138,6 +138,9 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
   const [playlistUrl, setPlaylistUrl] = useState(initialMode?.playlistUrl ?? '');
   const [musicEnabled, setMusicEnabled] = useState(initialMode?.musicEnabled ?? false);
   const [playlistName, setPlaylistName] = useState(initialMode?.playlistName ?? '');
+  const [weatherEnabled, setWeatherEnabled] = useState(
+    initialMode?.weatherEnabled ?? false
+  );
   // text and buttons follow the chosen background colour
   const dark = isDark(color);
   const textColor = dark ? '#FFFFFF' : darken(color, 0.45);
@@ -244,6 +247,29 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
             />
           )}
         </View>
+
+
+        {/* weather */}
+        <View style={[styles.panel, styles.features, { marginTop: 16 }]}>
+          <View style={styles.featureHeader}>
+            <Text style={[styles.featureTitle, { color: textColor }]}>
+              WEATHER
+            </Text>
+
+            <Switch
+              value={weatherEnabled}
+              onValueChange={setWeatherEnabled}
+              trackColor={{
+                false: '#999',
+                true: buttonColor,
+              }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+        </View>
+
+
+
         <View style={styles.buttons}>
           <Pressable
             style={({ pressed }) => [styles.button, { backgroundColor: buttonColor }, pressed && styles.pressed]}
@@ -263,6 +289,7 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
                 musicEnabled,
                 playlistUrl: musicEnabled ? playlistUrl.trim() : null,
                 playlistName: musicEnabled ? playlistName.trim() : null,
+                weatherEnabled,
               })
             }
           >
