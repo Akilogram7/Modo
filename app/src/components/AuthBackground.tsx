@@ -2,10 +2,10 @@ import { useEffect, useRef, type PropsWithChildren } from 'react';
 import { Animated, Easing, Image, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, gradientStops, gradientDirection } from '../theme';
+import { colors, gradientStops, gradientDirection } from '../../assets/theme';
 
 // One cloud that drifts from left to right, then loops
-function FloatingCloud({
+export function FloatingCloud({
   top,
   size,
   opacity,
@@ -45,7 +45,7 @@ function FloatingCloud({
 
   return (
     <Animated.Image
-      source={require('../../assets/Log In Page/cloud.png')}
+      source={require('../../assets/LogInPage/cloud.png')}
       resizeMode="contain"
       pointerEvents="none"
       style={{
@@ -86,20 +86,19 @@ export default function AuthBackground({ children }: PropsWithChildren) {
       end={gradientDirection.end}
       style={{ flex: 1 }}
     >
-  {/* top cluster, behind and around the logo */}
-  <FloatingCloud top={0.75} size={1.5} opacity={0.5} duration={50000} startAt={0.2} from="left" />
-  <FloatingCloud top={0.9} size={2.0} opacity={0.7} duration={45000} startAt={0.6} from="right" />
-  <FloatingCloud top={0.65} size={1.0} opacity={0.35} duration={75000} startAt={0.4} from="left" />
+    {/*top*/}
+    <FloatingCloud top={0.75} size={1.5} opacity={0.5} duration={50000} startAt={0.2} from="left" />
+    <FloatingCloud top={0.9} size={2.0} opacity={0.7} duration={45000} startAt={0.6} from="right" />
+    <FloatingCloud top={0.65} size={1.0} opacity={0.35} duration={75000} startAt={0.4} from="left" />
 
-  {/* middle, faint, behind the form */}
-  <FloatingCloud top={0.5} size={2.0} opacity={0.05} duration={20000} startAt={0.1} from="right" />
-  <FloatingCloud top={0.45} size={1.5} opacity={0.1} duration={20000} startAt={0.1} from="left" />
+    {/*middle*/}
+    <FloatingCloud top={0.5} size={2.0} opacity={0.05} duration={20000} startAt={0.1} from="right" />
+    <FloatingCloud top={0.45} size={1.5} opacity={0.1} duration={20000} startAt={0.1} from="left" />
 
-  {/* bottom cluster */}
-  <FloatingCloud top={0.15} size={1.5} opacity={0.35} duration={75000} startAt={0.7} from="right" />
-  <FloatingCloud top={0.2} size={2.0} opacity={0.50} duration={50000} startAt={0.3} from="left" />
-  <FloatingCloud top={0.25} size={1.} opacity={0.40} duration={45000} startAt={0.5} from="right" />
-  
+    {/*bottom*/}
+    <FloatingCloud top={0.15} size={1.5} opacity={0.35} duration={75000} startAt={0.7} from="right" />
+    <FloatingCloud top={0.2} size={2.0} opacity={0.50} duration={50000} startAt={0.3} from="left" />
+    <FloatingCloud top={0.25} size={1.} opacity={0.40} duration={45000} startAt={0.5} from="right" />
 
       <View style={{ flex: 1, paddingTop: insets.top + 20 }}>
         <View style={[styles.logo, { width: width * 0.85 }]}>
@@ -109,7 +108,7 @@ export default function AuthBackground({ children }: PropsWithChildren) {
             resizeMode="contain"
           />
           <Animated.Image
-            source={require('../../assets/logo/ModoWave.png')}
+            source={require('../../assets/Modos/ModoWave.png')}
             style={[styles.character, { transform: [{ translateY }] }]}
             resizeMode="contain"
           />

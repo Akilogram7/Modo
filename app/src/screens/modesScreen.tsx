@@ -13,12 +13,13 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, gradientStops, gradientDirection, fonts, shadows } from '../theme';
+import { colors, gradientStops, gradientDirection, fonts, shadows } from '../../assets/theme';
 import { CHARACTERS } from './createModeScreen';
 import type { PresetKey } from './presetModes';
 import type { CustomMode } from '../types/mode';
 import type { HostedShare, JoinedMode } from '../services/modeGroups';
 import { JoinWithCodeModal, ShareModeModal } from '../components/ModeShareModals';
+import { FloatingCloud } from '../components/AuthBackground';
 
 // Colours only used on this screen (same ones as the home screen cards)
 const CARD = {
@@ -33,19 +34,19 @@ const PRESETS: { id: PresetKey; label: string; color: string; img: ImageSourcePr
     id: 'study',
     label: 'Study',
     color: CARD.study,
-    img: require('../../assets/HomePage/ModoStudy.png'),
+    img: require('../../assets/Modos/ModoStudy.png'),
   },
   {
     id: 'sleep',
     label: 'Sleep',
     color: CARD.sleep,
-    img: require('../../assets/HomePage/ModoSleep.png'),
+    img: require('../../assets/Modos/ModoSleep.png'),
   },
   {
     id: 'commute',
     label: 'Commute',
     color: CARD.commute,
-    img: require('../../assets/HomePage/ModoRun.png'),
+    img: require('../../assets/Modos/ModoRun.png'),
   },
 ];
 
@@ -181,13 +182,10 @@ export default function ModesScreen({
       end={gradientDirection.end}
       style={styles.bg}
     >
-      {/* Background */}
-      <Image
-        source={require('../../assets/HomePage/CloudBackground.png')}
-        style={styles.backgroundImage}
-        resizeMode="stretch"
-        pointerEvents="none"
-      />
+      {/* Animated background */}
+      <FloatingCloud top={0.75} size={1.5} opacity={0.50} duration={20000} startAt={0.2} from="left" />
+      <FloatingCloud top={0.40} size={1.5} opacity={0.10} duration={25000} startAt={0.1} from="left" />
+      <FloatingCloud top={0.20} size={2.0} opacity={0.50} duration={20000} startAt={0.3} from="right" />
 
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -222,13 +220,13 @@ export default function ModesScreen({
                 accessibilityRole="button"
               >
                 {savingOrder ? (
-                  <ActivityIndicator size="small" color={colors.text} />
+                  <ActivityIndicator size="small" color={colors.heading} />
                 ) : (
                   <>
                     <Ionicons
                       name={reordering ? 'checkmark' : 'swap-vertical'}
                       size={16}
-                      color={colors.text}
+                      color={colors.heading}
                     />
                     <Text style={styles.reorderText}>{reordering ? 'Done' : 'Reorder'}</Text>
                   </>
@@ -311,10 +309,10 @@ export default function ModesScreen({
                 accessibilityRole="button"
               >
                 <View style={styles.barImgBox}>
-                  <Image
-                    source={require('../../assets/HomePage/Plus.png')}
-                    style={styles.plus}
-                    resizeMode="contain"
+                  <Ionicons
+                    name="add-circle"
+                    size={48}
+                    color={colors.heading}
                   />
                 </View>
                 <View style={styles.barText}>
@@ -334,7 +332,7 @@ export default function ModesScreen({
               style={({ pressed }) => [styles.reorderButton, pressed && styles.pressed]}
               accessibilityRole="button"
             >
-              <Ionicons name="enter-outline" size={16} color={colors.text} />
+              <Ionicons name="enter-outline" size={16} color={colors.heading} />
               <Text style={styles.reorderText}>Join with a code</Text>
             </Pressable>
           </View>
@@ -522,7 +520,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 34,
     fontFamily: fonts.headingBold,
-    color: colors.text,
+    color: colors.heading,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -530,7 +528,7 @@ const styles = StyleSheet.create({
   hint: {
     fontSize: 14,
     fontFamily: fonts.bodyBold,
-    color: colors.text,
+    color: colors.heading,
     opacity: 0.7,
     textAlign: 'center',
     marginTop: -4,
@@ -539,7 +537,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontFamily: fonts.headingBold,
-    color: colors.text,
+    color: colors.heading,
     marginTop: 20,
     marginBottom: 10,
   },
@@ -578,7 +576,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20,
     fontFamily: fonts.headingBold,
-    color: colors.text,
+    color: colors.heading,
   },
 
   list: {
@@ -670,7 +668,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20,
     fontFamily: fonts.bodyBold,
-    color: colors.text,
+    color: colors.heading,
     opacity: 0.75,
   },
 

@@ -11,7 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, gradientStops, gradientDirection, fonts, shadows } from '../theme';
+import { colors, gradientStops, gradientDirection, fonts, shadows } from '../../assets/theme';
 import {
   SAMPLE_GOALS,
   SAMPLE_IMPACT,
@@ -102,13 +102,6 @@ export default function StatsScreen({ customModes = [] }: Props) {
       style={styles.bg}
     >
       {/* Background */}
-      <Image
-        source={require('../../assets/HomePage/CloudBackground.png')}
-        style={styles.backgroundImage}
-        resizeMode="stretch"
-        pointerEvents="none"
-      />
-
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <Text style={styles.title}>Your Stats</Text>
@@ -116,7 +109,7 @@ export default function StatsScreen({ customModes = [] }: Props) {
           {error ? (
             <ErrorState message={error} onRetry={load} />
           ) : !data ? (
-            <ActivityIndicator size="large" color={colors.text} style={styles.loading} />
+            <ActivityIndicator size="large" color={colors.heading} style={styles.loading} />
           ) : data.sessions.length === 0 ? (
             <EmptyState />
           ) : (
@@ -448,7 +441,7 @@ function EmptyState() {
   return (
     <View style={[styles.card, styles.empty]}>
       <Image
-        source={require('../../assets/HomePage/ClassicModo1.png')}
+        source={require('../../assets/Modos/ModoWave.png')}
         style={styles.emptyImg}
         resizeMode="contain"
       />
@@ -503,7 +496,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 34,
     fontFamily: fonts.headingBold,
-    color: colors.text,
+    color: colors.heading,
     textAlign: 'center',
     marginTop: 8,
     marginBottom: 14,
@@ -512,7 +505,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontFamily: fonts.headingBold,
-    color: colors.text,
+    color: colors.heading,
     marginTop: 24,
     marginBottom: 10,
   },
@@ -528,7 +521,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     fontSize: 13,
     fontFamily: fonts.bodyBold,
-    color: colors.text,
+    color: colors.heading,
     opacity: 0.5,
   },
 
@@ -573,13 +566,13 @@ const styles = StyleSheet.create({
   cardBig: {
     fontSize: 32,
     fontFamily: fonts.headingBold,
-    color: colors.text,
+    color: colors.heading,
   },
 
   cardSub: {
     fontSize: 14,
     fontFamily: fonts.bodyBold,
-    color: colors.text,
+    color: colors.heading,
     opacity: 0.6,
     marginTop: -4,
   },
@@ -619,7 +612,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 13,
     fontFamily: fonts.bodyBold,
-    color: colors.text,
+    color: colors.heading,
     opacity: 0.5,
   },
 
@@ -655,13 +648,13 @@ const styles = StyleSheet.create({
   modeName: {
     fontSize: 17,
     fontFamily: fonts.bodyBold,
-    color: colors.text,
+    color: colors.heading,
   },
 
   modeMeta: {
     fontSize: 13,
     fontFamily: fonts.bodyBold,
-    color: colors.text,
+    color: colors.heading,
     opacity: 0.55,
   },
 
@@ -672,7 +665,7 @@ const styles = StyleSheet.create({
   modeTime: {
     fontSize: 17,
     fontFamily: fonts.headingBold,
-    color: colors.text,
+    color: colors.heading,
   },
 
   pill: {
@@ -716,7 +709,7 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 36,
     fontFamily: fonts.headingBold,
-    color: colors.text,
+    color: colors.heading,
     marginTop: 2,
   },
 
@@ -724,7 +717,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 17,
     fontFamily: fonts.bodyBold,
-    color: colors.text,
+    color: colors.heading,
     opacity: 0.6,
     textAlign: 'center',
   },
@@ -745,7 +738,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 16,
     fontFamily: fonts.bodyBold,
-    color: colors.text,
+    color: colors.heading,
   },
 
   goalStatus: {
@@ -771,7 +764,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 13,
     fontFamily: fonts.bodyBold,
-    color: colors.text,
+    color: colors.heading,
     opacity: 0.55,
   },
 
@@ -795,7 +788,7 @@ const styles = StyleSheet.create({
   timeUsual: {
     fontSize: 13,
     fontFamily: fonts.bodyBold,
-    color: colors.text,
+    color: colors.heading,
     opacity: 0.6,
   },
 
@@ -821,7 +814,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 11,
     fontFamily: fonts.bodyBold,
-    color: colors.text,
+    color: colors.heading,
     opacity: 0.5,
   },
 
@@ -868,7 +861,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 22,
     fontFamily: fonts.headingBold,
-    color: colors.text,
+    color: colors.heading,
   },
 
   emptyText: {
@@ -876,7 +869,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20,
     fontFamily: fonts.bodyBold,
-    color: colors.text,
+    color: colors.heading,
     opacity: 0.7,
     textAlign: 'center',
   },

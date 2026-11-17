@@ -11,7 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { colors, fonts, shadows } from '../theme';
+import { colors, fonts, shadows } from '../../assets/theme';
 import type { HostedShare } from '../services/modeGroups';
 
 // The two popups for sharing modes with friends:
@@ -210,7 +210,7 @@ function BigButton({
 
 function TextButton({
   label,
-  color = colors.text,
+  color = colors.heading,
   onPress,
 }: {
   label: string;
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 32,
     fontFamily: fonts.headingBold,
-    color: colors.text,
+    color: colors.heading,
     textAlign: 'center',
   },
 
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
     fontFamily: fonts.bodyBold,
-    color: colors.text,
+    color: colors.heading,
     opacity: 0.75,
     textAlign: 'center',
     marginTop: 6,
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     fontSize: 38,
     lineHeight: 48,
     fontFamily: fonts.headingBold,
-    color: colors.text,
+    color: colors.heading,
     letterSpacing: 6,
   },
 
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 19,
     fontFamily: fonts.bodyBold,
-    color: colors.text,
+    color: colors.heading,
     opacity: 0.7,
     textAlign: 'center',
     marginTop: 10,
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 30,
     fontFamily: fonts.headingBold,
-    color: colors.text,
+    color: colors.heading,
     textAlign: 'center',
     letterSpacing: 6,
     marginBottom: 14,

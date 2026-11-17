@@ -1,7 +1,8 @@
-//This file contains functions for normalizing and opening Spotify playlist links in a React Native application.
-// It includes a regular expression to validate Spotify playlist IDs and handles both Spotify URIs and standard URLs. 
-// The `normalizeSpotifyPlaylist` function returns a normalized URL or null if the input is invalid, while the 
-// `openSpotifyPlaylist` function attempts to open the normalized URL using the device's default browser.
+// This file contains functions for normalizing and opening Spotify playlist links in a React Native application.
+// It includes a regular expression to validate Spotify playlist IDs and handles both Spotify URIs and standard URLs.
+// The normalizeSpotifyPlaylist function returns a normalized URL or null if the input is invalid.
+// The openSpotifyPlaylist function attempts to open the normalized URL using the device's default browser.
+
 import { Linking } from 'react-native';
 
 const PLAYLIST_ID = /^[A-Za-z0-9]{22}$/;

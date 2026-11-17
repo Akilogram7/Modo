@@ -6,7 +6,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { fonts } from '../../theme';
+import { fonts } from '../../../assets/theme';
 
 type Props = {
   durationMinutes: number;
