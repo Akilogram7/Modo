@@ -2,9 +2,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } fr
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, shadows } from '../../assets/theme';
+import { achievements } from './achievementCatalog';
 
 // ─────────────── ACHIEVEMENTS COLOURS ───────────────
-// (kept here so theme.ts doesn't change; can be moved into theme.ts later)
 const ACHIEVEMENT_COLORS = {
   gradientLight: '#FFEFD0',
   gradientMain: '#FFB429',
@@ -17,8 +17,7 @@ const GRADIENT_STOPS = [0.36, 0.48] as const;
 const GRADIENT_START = { x: 1, y: 0 };
 const GRADIENT_END = { x: 0.22, y: 0.735 };
 
-const BOX_COUNT = 8;
-const BOX_GAP = 24; // space between the two columns
+const BOX_GAP = 12; // space between the two columns
 
 type Props = {
   onBack?: () => void;
@@ -28,9 +27,8 @@ export default function AchievementsScreen({ onBack }: Props) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
-  // exact box size: two columns inside the 24px side padding
-  const boxW = (width - 48 - BOX_GAP) / 2;
-  const boxH = boxW / 1.35;
+const boxW = (width - 32 - BOX_GAP) / 2;
+const boxH = boxW * 0.95;
 
   return (
     <LinearGradient
@@ -49,16 +47,37 @@ export default function AchievementsScreen({ onBack }: Props) {
         </Text>
 
         <View style={styles.grid}>
-          {Array.from({ length: BOX_COUNT }).map((_, i) => (
+          {achievements.map((achievement) => (
             <View
-              key={i}
-              style={{
-                width: boxW,
-                height: boxH,
-                borderRadius: 18,
-                backgroundColor: ACHIEVEMENT_COLORS.box,
-              }}
-            />
+              key={achievement.id}
+              style={[
+                styles.achievementCard,
+                {
+                  width: boxW,
+                  height: boxH,
+                },
+              ]}
+            >
+              <Text style={styles.achievementIcon}>💡</Text>
+
+              <Text
+                style={styles.achievementName}
+                numberOfLines={2}
+              >
+                {achievement.name}
+              </Text>
+
+              <Text
+                style={styles.achievementDescription}
+                numberOfLines={2}
+              >
+                {achievement.description}
+              </Text>
+
+              <Text style={styles.achievementRarity}>
+                {achievement.rarity}
+              </Text>
+            </View>
           ))}
         </View>
 
@@ -76,7 +95,7 @@ export default function AchievementsScreen({ onBack }: Props) {
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: 24 },
+  scroll: { paddingHorizontal: 16 },
   title: {
     fontSize: 40,
     lineHeight: 50,
@@ -91,6 +110,42 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     rowGap: 28,
   },
+
+  achievementCard: {
+    backgroundColor: '#D38900',
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    ...shadows.raised,
+  },
+
+  achievementIcon: {
+    fontSize: 35,
+    marginBottom: 8,
+  },
+
+  achievementName: {
+    fontFamily: fonts.headingBold,
+    fontSize: 16,
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+
+    achievementDescription: {
+    fontFamily: fonts.heading,
+    fontSize: 10,
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+
+  achievementRarity: {
+    fontFamily: fonts.heading,
+    fontSize: 12,
+    color: '#FFEFD0',
+    marginTop: 4,
+  },
+
   buttonWrap: { alignItems: 'center', marginTop: 36 },
   button: {
     backgroundColor: ACHIEVEMENT_COLORS.box,
