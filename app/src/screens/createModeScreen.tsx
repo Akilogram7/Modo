@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   Pressable,
   StyleSheet,
@@ -15,7 +16,8 @@ import { fonts, shadows, backgroundColors, gradientStops, gradientDirection } fr
 import { TimerSettings } from '../features/timer';
 import type { CustomModeInput } from '../types/mode';
 import { MusicSettings } from '../features/music';
-import { AlarmListEditor, newAlarm, PickerScrollView, type ModeAlarm } from '../features/alarm';
+import { AlarmListEditor, newAlarm, type ModeAlarm } from '../features/alarm';
+import { LockableScrollView } from '../components/ScrollLock';
 import { MapCard } from '../features/maps/MapCard';
 import {
   EMPTY_MAP_SETTINGS,
@@ -161,6 +163,14 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
   const [scratchpadEnabled, setScratchpadEnabled] = useState(
     initialMode?.scratchpadEnabled ?? false
   );
+  // A mode needs at least one feature, or there's nothing for it to do
+  const hasFeature =
+    timerEnabled ||
+    musicEnabled ||
+    weatherEnabled ||
+    (alarmEnabled && alarms.length > 0) ||
+    mapSettings.enabled ||
+    scratchpadEnabled;
   // text and buttons follow the chosen background colour
   const dark = isDark(color);
   const textColor = dark ? '#FFFFFF' : darken(color, 0.45);
@@ -173,7 +183,7 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
       end={gradientDirection.end}
       style={{ flex: 1 }}
     >
-      <PickerScrollView
+      <LockableScrollView
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 180 }]}
@@ -395,11 +405,23 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
           </Pressable>
           <Pressable
             style={({ pressed }) => [styles.button, { backgroundColor: buttonColor }, pressed && styles.pressed]}
-            onPress={() =>
+            onPress={() => {
+              if (!name.trim()) {
+                Alert.alert('Give your mode a name', 'Type a name at the top so you can find it later.');
+                return;
+              }
+              if (!hasFeature) {
+                Alert.alert(
+                  'Pick at least one feature',
+                  'Turn on a timer, music, weather, an alarm, a map or the scratchpad so your mode has something to do.',
+                );
+                return;
+              }
               onCreate?.({
-                name,
+                name: name.trim(),
                 color,
-                character,
+                // No icon picked: choose a random one
+                character: character ?? Math.floor(Math.random() * CHARACTERS.length),
                 timerEnabled,
                 timerDuration: timerEnabled ? timerMinutes * 60 : null,
                 breakMinutes: timerEnabled ? breakMinutes : 0,
@@ -414,13 +436,13 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
                 mapDestination: mapSettings.destination,
                 mapTravelMode: mapSettings.travelMode,
                 scratchpadEnabled,
-              })
-            }
+              });
+            }}
           >
             <Text style={styles.buttonText}>{editing ? 'Save Changes' : 'Create Mode'}</Text>
           </Pressable>
         </View>
-      </PickerScrollView>
+      </LockableScrollView>
     </LinearGradient>
   );
 }

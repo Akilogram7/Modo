@@ -30,7 +30,6 @@ export default function Scratchpad({ modeId }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('notes');
   const [notes, setNotes] = useState('');
   const [strokes, setStrokes] = useState<DrawingStroke[]>([]);
-  const [inputHeight, setInputHeight] = useState(220);
 
   const [loaded, setLoaded] = useState(false);
   const [saveStatus, setSaveStatus] = useState('Loading...');
@@ -104,7 +103,6 @@ export default function Scratchpad({ modeId }: Props) {
     setLoaded(false);
     setNotes('');
     setStrokes([]);
-    setInputHeight(220);
     setSaveStatus('Loading...');
 
     notesRef.current = '';
@@ -192,7 +190,6 @@ export default function Scratchpad({ modeId }: Props) {
 
   const clearNotes = () => {
     updateNotes('');
-    setInputHeight(220);
   };
 
   return (
@@ -259,18 +256,10 @@ export default function Scratchpad({ modeId }: Props) {
             multiline
             scrollEnabled={false}
             textAlignVertical="top"
-            onContentSizeChange={(event) => {
-              const height =
-                event.nativeEvent.contentSize.height;
-
-              setInputHeight(
-                Math.max(220, Math.ceil(height) + 24)
-              );
-            }}
-            style={[
-              styles.noteInput,
-              { height: inputHeight },
-            ]}
+            // No fixed height: the box starts at 220 (minHeight) and only grows
+            // when the text doesn't fit. (Setting the height from the content size
+            // made it keep growing by itself.)
+            style={styles.noteInput}
           />
         </View>
       )}
