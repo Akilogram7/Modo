@@ -21,6 +21,9 @@ export type CustomModeInput = {
   mapEnabled: boolean;
   mapDestination: MapLocation | null;
   mapTravelMode: TravelMode;
+
+  // Scratchpad
+  scratchpadEnabled: boolean;
 };
 
 export type CustomMode = CustomModeInput & { id: string };
