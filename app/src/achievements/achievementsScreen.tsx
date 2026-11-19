@@ -15,7 +15,6 @@ import {
   backgroundColors,
 } from '../../assets/theme';
 import { achievements, RARITY_XP } from './achievementCatalog';
-
 // ─────────────── ACHIEVEMENT COLOURS ───────────────
 const ACHIEVEMENT_COLORS = {
   gradientLight: '#FFEFD0',
@@ -27,7 +26,6 @@ const ACHIEVEMENT_COLORS = {
   secondaryText: '#FFF0D6',
   xp: '#FFE3A3',
 };
-
 // ─────────────── RARITY COLOURS ───────────────
 // Full colours for unlocked achievements
 const RARITY_COLORS = {
@@ -38,7 +36,6 @@ const RARITY_COLORS = {
   Legendary: '#ffab03',
   Secret: ACHIEVEMENT_COLORS.secretBox,
 } as const;
-
 // Softer colours for locked achievements
 const LOCKED_RARITY_COLORS = {
   Common: '#B6AA9A',
@@ -48,7 +45,6 @@ const LOCKED_RARITY_COLORS = {
   Legendary: '#BAA075',
   Secret: ACHIEVEMENT_COLORS.secretBox,
 } as const;
-
 // Display order
 const RARITIES = [
   'Common',
@@ -58,7 +54,6 @@ const RARITIES = [
   'Legendary',
   'Secret',
 ] as const;
-
 const RARITY_EMOJIS = {
   Common: '🌱',
   Uncommon: '🥈',
@@ -79,10 +74,9 @@ const BOX_GAP = 12;
 // ─────────────── FRONTEND PREVIEW ───────────────
 // true = show all achievements unlocked
 // false = show temporary locked/unlocked data
+
 const PREVIEW_ALL_UNLOCKED = false;
-
 const UNLOCKED_ACHIEVEMENTS = [1, 3, 5];
-
 const ACHIEVEMENT_PROGRESS: Record<number, number> = {
   1: 100,
   2: 60,
@@ -98,11 +92,9 @@ type Props = {
 export default function AchievementsScreen({ onBack }: Props) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-
   // Two columns with slightly rectangular cards
   const boxW = (width - 32 - BOX_GAP) / 2;
   const boxH = boxW * 0.95;
-
   return (
     <LinearGradient
       colors={[
@@ -132,44 +124,43 @@ export default function AchievementsScreen({ onBack }: Props) {
         >
           ACHIEVEMENTS
         </Text>
-
         {/* ─────────────── RARITY SECTIONS ─────────────── */}
         {RARITIES.map((rarity) => {
           const rarityAchievements = achievements.filter(
             (achievement) => achievement.rarity === rarity
           );
 
+          // Temporary preview count; backend unlock data will replace this.
+          const unlockedCount = rarityAchievements.filter(
+            (achievement) =>
+              PREVIEW_ALL_UNLOCKED ||
+              UNLOCKED_ACHIEVEMENTS.includes(achievement.id)
+          ).length;
+
           return (
             <View key={rarity} style={styles.raritySection}>
-
               {/* RARITY HEADING */}
               <View style={styles.rarityHeader}>
                 <View style={styles.rarityHeadingRow}>
                   <Text style={styles.rarityEmoji}>
                     {RARITY_EMOJIS[rarity]}
                   </Text>
-
                   <Text style={styles.rarityTitle}>
                     {rarity.toUpperCase()}
                   </Text>
                 </View>
-
                 <Text style={styles.rarityCount}>
-                  {rarityAchievements.length} Achievements
+                  {unlockedCount}/{rarityAchievements.length} Unlocked
                 </Text>
               </View>
-
               {/* ACHIEVEMENT CARDS */}
               <View style={styles.grid}>
                 {rarityAchievements.map((achievement) => {
-
                   const isUnlocked =
                     PREVIEW_ALL_UNLOCKED ||
                     UNLOCKED_ACHIEVEMENTS.includes(achievement.id);
-
                   const isHiddenSecret =
                     achievement.rarity === 'Secret' && !isUnlocked;
-
                   const progress = isUnlocked
                     ? 100
                     : Math.max(
@@ -179,11 +170,9 @@ export default function AchievementsScreen({ onBack }: Props) {
                           ACHIEVEMENT_PROGRESS[achievement.id] ?? 0
                         )
                       );
-
                   const cardColor = isUnlocked
                     ? RARITY_COLORS[achievement.rarity]
                     : LOCKED_RARITY_COLORS[achievement.rarity];
-
                   return (
                     <View
                       key={achievement.id}
@@ -197,7 +186,6 @@ export default function AchievementsScreen({ onBack }: Props) {
                       ]}
                     >
                       <View style={styles.cardContent}>
-
                         {/* EMOJI */}
                         <Text style={styles.achievementIcon}>
                           {isHiddenSecret
@@ -206,7 +194,6 @@ export default function AchievementsScreen({ onBack }: Props) {
                               ? achievement.emoji
                               : '🔒'}
                         </Text>
-
                         {/* NAME */}
                         <Text
                           style={styles.achievementName}
@@ -217,7 +204,6 @@ export default function AchievementsScreen({ onBack }: Props) {
                             ? '???'
                             : achievement.name}
                         </Text>
-
                         {/* DESCRIPTION */}
                         <Text
                           style={styles.achievementDescription}
@@ -228,7 +214,6 @@ export default function AchievementsScreen({ onBack }: Props) {
                             ? 'A secret awaits...'
                             : achievement.description}
                         </Text>
-
                         {/* RARITY + XP */}
                         <View style={styles.rewardRow}>
                           <Text
@@ -241,7 +226,6 @@ export default function AchievementsScreen({ onBack }: Props) {
                                 ? achievement.rarity
                                 : 'Locked'}
                           </Text>
-
                           <Text
                             style={styles.achievementXP}
                             numberOfLines={1}
@@ -249,11 +233,9 @@ export default function AchievementsScreen({ onBack }: Props) {
                             ⭐ +{RARITY_XP[achievement.rarity]} XP
                           </Text>
                         </View>
-
                         {/* PROGRESS BAR */}
                         {!isUnlocked && !isHiddenSecret && (
                           <View style={styles.progressContainer}>
-
                             <View style={styles.progressBar}>
                               <View
                                 style={[
@@ -264,24 +246,19 @@ export default function AchievementsScreen({ onBack }: Props) {
                                 ]}
                               />
                             </View>
-
                             <Text style={styles.progressText}>
                               {progress}%
                             </Text>
-
                           </View>
                         )}
-
                       </View>
                     </View>
                   );
                 })}
               </View>
-
             </View>
           );
         })}
-
         {/* ─────────────── GO BACK BUTTON ─────────────── */}
         <View style={styles.buttonWrap}>
           <Pressable
@@ -296,19 +273,15 @@ export default function AchievementsScreen({ onBack }: Props) {
             </Text>
           </Pressable>
         </View>
-
       </ScrollView>
     </LinearGradient>
   );
 }
-
 // ─────────────── STYLES ───────────────
 const styles = StyleSheet.create({
-
   scroll: {
     paddingHorizontal: 16,
   },
-
   // ─────────────── TITLE ───────────────
   title: {
     fontSize: 40,
@@ -318,43 +291,36 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
   },
-
   // ─────────────── RARITY SECTIONS ───────────────
   raritySection: {
     marginBottom: 30,
   },
-
   rarityHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 15,
   },
-
   rarityHeadingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     flexShrink: 1,
   },
-
   rarityEmoji: {
     fontSize: 23,
   },
-
   rarityTitle: {
     fontFamily: fonts.bodyBold,
     fontSize: 23,
     color: colors.heading,
   },
-
   rarityCount: {
     fontFamily: fonts.bodyBold,
     fontSize: 12,
     color: colors.otherText,
     marginLeft: 6,
   },
-
   // ─────────────── GRID ───────────────
   grid: {
     flexDirection: 'row',
@@ -362,7 +328,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     rowGap: 28,
   },
-
   // ─────────────── ACHIEVEMENT CARD ───────────────
   achievementCard: {
     borderRadius: 18,
@@ -371,20 +336,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...shadows.raised,
   },
-
   cardContent: {
     flex: 1,
     width: '100%',
     alignItems: 'center',
     justifyContent: 'space-evenly',
   },
-
   achievementIcon: {
     fontSize: 28,
     textAlign: 'center',
     includeFontPadding: false,
   },
-
   achievementName: {
     fontFamily: fonts.headingBold,
     fontSize: 14,
@@ -392,7 +354,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     textAlign: 'center',
   },
-
   achievementDescription: {
     fontFamily: fonts.heading,
     fontSize: 10,
@@ -400,7 +361,6 @@ const styles = StyleSheet.create({
     color: '#FFF0D6',
     textAlign: 'center',
   },
-
   // ─────────────── RARITY + XP ───────────────
   rewardRow: {
     width: '100%',
@@ -409,7 +369,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     columnGap: 7,
   },
-
   achievementRarity: {
     fontFamily: fonts.headingBold,
     fontSize: 10,
@@ -418,7 +377,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     includeFontPadding: false,
   },
-
   achievementXP: {
     fontFamily: fonts.headingBold,
     fontSize: 10,
@@ -427,14 +385,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     includeFontPadding: false,
   },
-
   // ─────────────── PROGRESS BAR ───────────────
   progressContainer: {
     width: '85%',
     alignItems: 'center',
     gap: 3,
   },
-
   progressBar: {
     width: '100%',
     height: 6,
@@ -442,13 +398,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     overflow: 'hidden',
   },
-
   progressFill: {
     height: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
   },
-
   progressText: {
     fontFamily: fonts.headingBold,
     fontSize: 9,
@@ -457,13 +411,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     includeFontPadding: false,
   },
-
   // ─────────────── GO BACK BUTTON ───────────────
   buttonWrap: {
     alignItems: 'center',
     marginTop: 36,
   },
-
   button: {
     backgroundColor: ACHIEVEMENT_COLORS.box,
     borderRadius: 30,
@@ -471,13 +423,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     ...shadows.raised,
   },
-
   buttonText: {
     color: ACHIEVEMENT_COLORS.text,
     fontSize: 24,
     fontFamily: fonts.headingBold,
   },
-
   pressed: {
     transform: [{ scale: 0.97 }],
     opacity: 0.9,
