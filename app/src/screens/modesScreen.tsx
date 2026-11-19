@@ -27,6 +27,7 @@ import type { CustomMode, CustomModeInput } from '../types/mode';
 import type { HostedShare, JoinedMode } from '../services/modeGroups';
 import { JoinWithCodeModal, ShareModeModal } from '../components/ModeShareModals';
 import { FloatingCloud } from '../components/AuthBackground';
+import { alarmsSummary, newAlarm } from '../features/alarm';
 import BubblyPlus from '../components/BubblyPlus'; // change this path if BubblyPlus.tsx lives somewhere else
 
 // Colours only used on this screen (same ones as the home screen cards)
@@ -47,6 +48,7 @@ const PRESETS: {
   character: number;
   timerMinutes?: number;
   weather?: boolean;
+  alarm?: boolean;
 }[] = [
   {
     id: 'study',
@@ -62,6 +64,7 @@ const PRESETS: {
     color: CARD.sleep,
     img: require('../../assets/Modos/ModoSleep.png'),
     character: 11,
+    alarm: true,
   },
   {
     id: 'commute',
@@ -81,10 +84,13 @@ function starterFor(preset: (typeof PRESETS)[number]): CustomModeInput {
     character: preset.character,
     timerEnabled: !!preset.timerMinutes,
     timerDuration: preset.timerMinutes ? preset.timerMinutes * 60 : null,
+    breakMinutes: 0,
     musicEnabled: false,
     playlistUrl: null,
     playlistName: null,
     weatherEnabled: !!preset.weather,
+    alarmEnabled: !!preset.alarm,
+    alarms: preset.alarm ? [newAlarm()] : [],
   };
 }
 
@@ -421,8 +427,8 @@ export default function ModesScreen({
                 name={modeName(joined.mode)}
                 detail={
                   joined.runningForSeconds !== null
-                    ? `${joined.hostName} has it on right now`
-                    : `From ${joined.hostName}`
+                    ? `${joined.hostName} has it on, tap to join`
+                    : `Hosted by ${joined.hostName}`
                 }
                 color={joined.mode.color}
                 image={
@@ -554,7 +560,7 @@ function modeName(mode: CustomMode) {
   return mode.name.trim() || 'Custom mode';
 }
 
-// "25 min timer and Spotify playlist", "25 min timer", "No features yet"...
+// "25 min timer, Spotify playlist", "25 min timer", "No features yet"...
 function featureSummary(mode: CustomMode) {
   const parts: string[] = [];
   if (mode.weatherEnabled) {
@@ -563,12 +569,17 @@ function featureSummary(mode: CustomMode) {
 
   if (mode.timerEnabled && mode.timerDuration !== null) {
     parts.push(`${Math.round(mode.timerDuration / 60)} min timer`);
+    if (mode.breakMinutes) parts.push(`${mode.breakMinutes} min breaks`);
+  }
+  const alarmText = mode.alarmEnabled ? alarmsSummary(mode.alarms) : null;
+  if (alarmText) {
+    parts.push(alarmText);
   }
   if (mode.musicEnabled) {
     parts.push('Spotify playlist');
   }
 
-  return parts.length > 0 ? parts.join(' and ') : 'No features yet';
+  return parts.length > 0 ? parts.join(', ') : 'No features yet';
 }
 
 // ---------- Styles ----------

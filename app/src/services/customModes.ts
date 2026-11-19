@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase';
 import type { CustomMode } from '../types/mode';
+import { toAlarmList } from '../features/alarm/alarmList';
 
 export type NewCustomMode = Omit<CustomMode, 'id'>;
 
@@ -33,6 +34,17 @@ function toModeColumns(mode: NewCustomMode) {
             weather: {
                 enabled: mode.weatherEnabled,
             },
+            timer: {
+                breakMinutes: mode.timerEnabled
+                    ? (mode.breakMinutes ?? 0)
+                    : 0,
+            },
+            alarm: {
+                enabled: mode.alarmEnabled,
+                alarms: mode.alarmEnabled
+                    ? mode.alarms
+                    : [],
+            },
         },
 
     };
@@ -52,6 +64,9 @@ export function toCustomMode(row: any): CustomMode {
         playlistUrl: row.feature_settings?.music?.playlistUrl ?? null,
         playlistName: row.feature_settings?.music?.playlistName ?? null,
         weatherEnabled: row.feature_settings?.weather?.enabled ?? false,
+        breakMinutes: row.feature_settings?.timer?.breakMinutes ?? 0,
+        alarmEnabled: row.feature_settings?.alarm?.enabled ?? false,
+        alarms: toAlarmList(row.feature_settings?.alarm),
     };
 
 }

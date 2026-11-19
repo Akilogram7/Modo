@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../providers/AuthProvider';
 import { supabase } from '../../lib/supabase';
 import { colors, gradientStops, gradientDirection, fonts, shadows, backgroundColors } from '../../assets/theme';
+import GuestUpgradeCard from '../components/GuestUpgradeCard';
 
 // Modos users can pick as their profile picture.
 // The key is what gets saved on the account, so don't rename keys once people use them.
@@ -66,6 +67,8 @@ export default function ProfileScreen(_props: Props) {
   const { width } = useWindowDimensions();
 
   const savedName: string = user?.user_metadata?.display_name ?? '';
+  // Guests signed in with "Continue as a guest" and have no email yet
+  const isGuest = user?.is_anonymous === true;
   const savedAvatar: string = user?.user_metadata?.avatar ?? DEFAULT_AVATAR;
   const savedColor: string = user?.user_metadata?.avatar_color ?? backgroundColors[0];
 
@@ -146,6 +149,27 @@ export default function ProfileScreen(_props: Props) {
       return;
     }
     setPickerOpen(false);
+  }
+
+  // Guests can't log back in, so logging out loses everything. Warn first,
+  // then delete the guest account so it doesn't sit in the database forever.
+  function confirmGuestLogout() {
+    Alert.alert(
+      'Log out of your guest account?',
+      "Guest accounts can't be logged back into, so your modes and stats will be gone for good. Add an email first to keep them.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log out',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await supabase.rpc('delete_own_account');
+            if (error) console.warn('Could not delete the guest account:', error.message);
+            await supabase.auth.signOut({ scope: 'local' });
+          },
+        },
+      ],
+    );
   }
 
   function confirmDelete() {
@@ -285,12 +309,15 @@ export default function ProfileScreen(_props: Props) {
               <View style={styles.divider} />
 
               <Text style={styles.cardLabel}>Email</Text>
-              <Text style={styles.value}>{user?.email}</Text>
+              <Text style={styles.value}>{isGuest ? 'Guest account, no email yet' : user?.email}</Text>
             </View>
+
+            {/* Guests: add an email and password to keep everything */}
+            {isGuest && <GuestUpgradeCard />}
 
             {/* Log out */}
             <Pressable
-              onPress={signOut}
+              onPress={isGuest ? confirmGuestLogout : signOut}
               style={({ pressed }) => [styles.logout, pressed && styles.pressed]}
               accessibilityRole="button"
             >

@@ -2,7 +2,6 @@ import {
   Alert,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -17,6 +16,15 @@ import { fonts, shadows } from '../../assets/theme';
 import { useEffect, useState } from 'react';
 import { FocusTimer } from '../features/timer';
 import { endModeSession } from '../stats/modeSessions';
+import {
+  AlarmRow,
+  MAX_ALARMS,
+  newAlarm,
+  PickerScrollView,
+  toSleepAlarms,
+  type ModeAlarm,
+} from '../features/alarm';
+import { supabase } from '../../lib/supabase';
 import { MusicSettings } from '../features/music';
 export type PresetKey = 'study' | 'sleep' | 'commute';
 import { useAuth } from '../providers/AuthProvider';
@@ -95,7 +103,6 @@ const PRESETS: Record<PresetKey, Preset> = {
       { label: 'ALARM SET', checked: true },
     ],
     time: '8:00 AM',
-    timeNote: '7 hours and 32 minutes',
   },
   commute: {
     title: 'COMMUTE MODE',
@@ -133,6 +140,24 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
     ...EMPTY_PRESET_MUSIC,
   });
   const [musicLoading, setMusicLoading] = useState(true);
+  // Sleep mode's alarms. Each person's list (titles, times, on/off) is saved on their account.
+  const savedSleepAlarms = toSleepAlarms(session?.user.user_metadata);
+  const savedSleepJson = JSON.stringify(savedSleepAlarms);
+  const [sleepAlarms, setSleepAlarms] = useState<ModeAlarm[]>(savedSleepAlarms);
+  const [alarmsOn, setAlarmsOn] = useState(true);
+  const [justAddedAlarm, setJustAddedAlarm] = useState<string | null>(null);
+  // Save changes a moment after they stop changing them
+  useEffect(() => {
+    if (mode !== 'sleep' || JSON.stringify(sleepAlarms) === savedSleepJson) return;
+    const save = setTimeout(() => {
+      void supabase.auth
+        .updateUser({ data: { sleep_alarms: sleepAlarms } })
+        .then(({ error }) => {
+          if (error) console.warn('Could not save the alarms:', error.message);
+        });
+    }, 1500);
+    return () => clearTimeout(save);
+  }, [mode, sleepAlarms, savedSleepJson]);
   const [musicSaving, setMusicSaving] = useState(false);
   const [showMusicSettings, setShowMusicSettings] = useState(false);
   useEffect(() => {
@@ -211,7 +236,7 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
         end={GRADIENT_END}
         style={{ flex: 1 }}
       >
-        <ScrollView
+        <PickerScrollView
           style={{ flex: 1 }}
           contentContainerStyle={[
             styles.scroll,
@@ -242,11 +267,14 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                       ? timerEnabled
                       : r.label === 'WEATHER' && mode === 'commute'
                         ? weatherEnabled
-                        : r.checked;
+                        : r.label === 'ALARM SET' && mode === 'sleep'
+                          ? alarmsOn
+                          : r.checked;
                 const canToggle =
                   (r.label === 'PLAYLIST' && supportsMusic) ||
                   (r.label === 'TIMER' && mode === 'study') ||
-                  (r.label === 'WEATHER' && mode === 'commute');
+                  (r.label === 'WEATHER' && mode === 'commute') ||
+                  (r.label === 'ALARM SET' && mode === 'sleep');
                 const toggleDisabled =
                   r.label === 'PLAYLIST' && (musicLoading || musicSaving);
                 return (
@@ -282,6 +310,9 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                         else if (r.label === 'WEATHER' && mode === 'commute') {
                           setWeatherEnabled((prev) => !prev);
                         }
+                        else if (r.label === 'ALARM SET' && mode === 'sleep') {
+                          setAlarmsOn((prev) => !prev);
+                        }
                       }}
                       style={styles.row}
                     >
@@ -316,6 +347,42 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                 );
               })}
             </View>
+            {/* Sleep mode's alarms: each rings at its time on the phone's clock */}
+            {mode === 'sleep' && alarmsOn && (
+              <>
+                {sleepAlarms.map((a) => (
+                  <AlarmRow
+                    key={a.id}
+                    alarm={a}
+                    modeTitle="Sleep mode"
+                    textColor={c.text}
+                    accentColor={c.accent}
+                    startOpen={a.id === justAddedAlarm}
+                    onChange={(next) =>
+                      setSleepAlarms((list) => list.map((x) => (x.id === next.id ? next : x)))
+                    }
+                    onDelete={() => setSleepAlarms((list) => list.filter((x) => x.id !== a.id))}
+                  />
+                ))}
+                {sleepAlarms.length < MAX_ALARMS && (
+                  <Pressable
+                    onPress={() => {
+                      const added = newAlarm();
+                      setJustAddedAlarm(added.id);
+                      setSleepAlarms((list) => [...list, added]);
+                    }}
+                    style={({ pressed }) => [
+                      styles.addAlarmButton,
+                      { borderColor: c.text },
+                      pressed && styles.pressed,
+                    ]}
+                    accessibilityRole="button"
+                  >
+                    <Text style={[styles.addAlarmText, { color: c.text }]}>+ ADD ALARM</Text>
+                  </Pressable>
+                )}
+              </>
+            )}
             {/* Reuse the same timer in Study Mode and custom modes. */}
             {mode === 'study' && timerEnabled && (
               <FocusTimer
@@ -421,12 +488,24 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
               </Pressable>
             </View>
           </View>
-        </ScrollView>
+        </PickerScrollView>
       </LinearGradient>
     </KeyboardAvoidingView>
   );
 }
 const styles = StyleSheet.create({
+  addAlarmButton: {
+    alignSelf: 'center',
+    marginTop: 12,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+  },
+  addAlarmText: {
+    fontSize: 16,
+    fontFamily: fonts.headingBold,
+  },
   scroll: { paddingHorizontal: 24 },
   title: {
     fontSize: 50,

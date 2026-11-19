@@ -1,18 +1,28 @@
-import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, Alert } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts, shadows } from '../../assets/theme';
 import { CHARACTERS } from './createModeScreen';
-import { FocusTimer } from '../features/timer';
+import { FocusTimer, FollowTimer, type TimerState } from '../features/timer';
 import type { CustomMode } from '../types/mode';
+import type { SharedTimer } from '../services/modeGroups';
+import { AlarmRow, PickerScrollView } from '../features/alarm';
 import { endModeSession } from '../stats/modeSessions';
 import { MusicSettings } from '../features/music';
 import { openSpotifyPlaylist } from '../features/music';
 import { WeatherCard } from '../features/weather/WeatherCard';
 import { useEffect, useState } from 'react';
 
-type Props = { mode: CustomMode; onEnd: () => void };
+type Props = {
+  mode: CustomMode;
+  onEnd: () => void;
+  // Set when this is a friend's shared mode: only the host can change it, so the screen is read-only
+  hostName?: string;
+  sharedTimer?: SharedTimer | null;
+  // Set when this is YOUR shared mode: tells friends what your timer is doing
+  onTimerChange?: (state: TimerState) => void;
+};
 
 function lighten(hex: string, amount: number) {
   const n = parseInt(hex.slice(1), 16);
@@ -25,7 +35,14 @@ function darken(hex: string, amount: number) {
   return `rgb(${mix((n >> 16) & 255)},${mix((n >> 8) & 255)},${mix(n & 255)})`;
 }
 
-export default function CustomModeScreen({ mode, onEnd }: Props) {
+export default function CustomModeScreen({
+  mode,
+  onEnd,
+  hostName,
+  sharedTimer = null,
+  onTimerChange,
+}: Props) {
+  const following = hostName !== undefined;
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const characterImage = mode.character !== null ? CHARACTERS[mode.character] : undefined;
@@ -35,6 +52,9 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
   const [timerEnabled, setTimerEnabled] = useState(mode.timerEnabled);
   const [weatherEnabled, setWeatherEnabled] = useState(mode.weatherEnabled);
   const [musicEnabled, setMusicEnabled] = useState(mode.musicEnabled);
+  const modeTitle = `${mode.name.trim() || 'Custom'} mode`;
+  // The alarms are on while this mode is on. Changes made here only last until the mode ends.
+  const [alarmsOn, setAlarmsOn] = useState(mode.alarmEnabled);
 
   const finish = () => {
     void endModeSession();
@@ -61,7 +81,7 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
       end={{ x: 0.22, y: 0.735 }}
       style={{ flex: 1 }}
     >
-      <ScrollView
+      <PickerScrollView
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}
         showsVerticalScrollIndicator={false}
       >
@@ -70,6 +90,16 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
         </Text>
         {characterImage !== undefined && (
           <Image source={characterImage} style={{ width: modoW, height: modoW * 0.75, alignSelf: 'center' }} resizeMode="contain" />
+        )}
+
+        {/* Friends in a shared mode: the host is in charge */}
+        {following && (
+          <View style={[styles.hostBanner, { backgroundColor: accent }]}>
+            <Ionicons name="people" size={20} color={textColor} />
+            <Text style={[styles.hostBannerText, { color: textColor }]}>
+              {hostName} is running this mode. Only they can change it.
+            </Text>
+          </View>
         )}
 
         <View
@@ -86,8 +116,9 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
               <Pressable
                 style={styles.row}
                 onPress={() => setTimerEnabled((prev) => !prev)}
+                disabled={following}
                 accessibilityRole="checkbox"
-                accessibilityState={{ checked: timerEnabled }}
+                accessibilityState={{ checked: timerEnabled, disabled: following }}
               >
                 <View
                   style={[
@@ -109,12 +140,68 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
               </Pressable>
 
               {timerEnabled && mode.timerDuration !== null && (
-                <FocusTimer
-                  initialDurationSeconds={mode.timerDuration}
-                  textColor={textColor}
-                  accentColor={accent}
-                />
+                following ? (
+                  <FollowTimer
+                    timer={sharedTimer}
+                    fallbackSeconds={mode.timerDuration}
+                    fallbackBreakSeconds={(mode.breakMinutes ?? 0) * 60}
+                    hostName={hostName}
+                    textColor={textColor}
+                    accentColor={accent}
+                  />
+                ) : (
+                  <FocusTimer
+                    initialDurationSeconds={mode.timerDuration}
+                    initialBreakMinutes={mode.breakMinutes ?? 0}
+                    textColor={textColor}
+                    accentColor={accent}
+                    onStateChange={onTimerChange}
+                  />
+                )
               )}
+            </>
+          )}
+
+          {/* ALARM — only available if enabled when creating the mode */}
+          {mode.alarmEnabled && (
+            <>
+              <Pressable
+                style={[styles.row, { marginTop: 20 }]}
+                onPress={() => setAlarmsOn((prev) => !prev)}
+                disabled={following}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: alarmsOn, disabled: following }}
+              >
+                <View
+                  style={[
+                    styles.box,
+                    {
+                      backgroundColor: alarmsOn ? '#FFFFFF' : accent,
+                      borderColor: accent,
+                    },
+                  ]}
+                >
+                  {alarmsOn && (
+                    <Ionicons name="checkmark" size={24} color={accent} />
+                  )}
+                </View>
+
+                <Text style={[styles.rowText, { color: textColor }]}>
+                  {mode.alarms.length > 1 ? 'ALARMS' : 'ALARM'}
+                </Text>
+              </Pressable>
+
+              {alarmsOn &&
+                mode.alarms.map((a) => (
+                  <AlarmRow
+                    key={a.id}
+                    alarm={a}
+                    modeTitle={modeTitle}
+                    textColor={textColor}
+                    accentColor={accent}
+                    readOnly={following}
+                  />
+                ))}
             </>
           )}
 
@@ -124,8 +211,9 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
               <Pressable
                 style={[styles.row, { marginTop: 20 }]}
                 onPress={() => setWeatherEnabled((prev) => !prev)}
+                disabled={following}
                 accessibilityRole="checkbox"
-                accessibilityState={{ checked: weatherEnabled }}
+                accessibilityState={{ checked: weatherEnabled, disabled: following }}
               >
                 <View
                   style={[
@@ -153,7 +241,8 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
           {/* Only show this when the mode has no saved features */}
           {!mode.timerEnabled &&
             !mode.musicEnabled &&
-            !mode.weatherEnabled && (
+            !mode.weatherEnabled &&
+            !mode.alarmEnabled && (
               <Text style={[styles.note, { color: textColor }]}>
                 No features are enabled yet.
               </Text>
@@ -165,8 +254,9 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
             <Pressable
               style={[styles.row, { marginTop: 20 }]}
               onPress={() => setMusicEnabled((prev) => !prev)}
+              disabled={following}
               accessibilityRole="checkbox"
-              accessibilityState={{ checked: musicEnabled }}
+              accessibilityState={{ checked: musicEnabled, disabled: following }}
             >
               <View
                 style={[
@@ -218,10 +308,13 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
 
           {/* end mode button */}
           <Pressable style={[styles.button, { backgroundColor: accent }]} onPress={finish}>
-            <Text style={[styles.buttonText, { color: textColor }]}>END MODE</Text>
+            {/* Friends only leave. Ending it for everyone is up to the host. */}
+            <Text style={[styles.buttonText, { color: textColor }]}>
+              {following ? 'LEAVE MODE' : 'END MODE'}
+            </Text>
           </Pressable>
         </View>
-      </ScrollView>
+      </PickerScrollView>
     </LinearGradient>
 
   );
@@ -235,6 +328,16 @@ const styles = StyleSheet.create({
   box: { width: 32, height: 32, borderRadius: 8, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   rowText: { fontSize: 25, lineHeight: 32, fontFamily: fonts.headingBold, marginLeft: 14 },
   note: { fontSize: 16, marginTop: 20, fontFamily: fonts.bodyBold },
+  hostBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 12,
+    borderRadius: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  hostBannerText: { flex: 1, fontSize: 15, lineHeight: 20, fontFamily: fonts.bodyBold },
   button: { alignSelf: 'center', marginTop: 30, borderRadius: 30, paddingVertical: 8, paddingHorizontal: 24, ...shadows.raised },
   buttonText: { fontSize: 30, lineHeight: 50, fontFamily: fonts.headingBold },
   spotifyButton: {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native'
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { supabase } from '../../lib/supabase'
-import { AuthButton, AuthCard, AuthField, authStyles } from '../components/auth-ui'
+import { AuthButton, AuthCard, AuthField, authStyles, colors } from '../components/auth-ui'
 import AuthBackground from '../components/AuthBackground'
 
 type Props = {
@@ -13,6 +13,7 @@ export default function SignInScreen({ onSwitchToSignUp }: Props) {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [guestLoading, setGuestLoading] = useState(false)
 
   async function handleSignIn() {
     setError(null)
@@ -35,6 +36,25 @@ export default function SignInScreen({ onSwitchToSignUp }: Props) {
 
     // No navigation here on purpose. When the login works, AuthProvider gets
     // the new session and AuthGate switches to the main app by itself.
+  }
+
+  // Try the app without an email. Supabase makes a real (but anonymous) account,
+  // so modes and stats save like normal. They can add an email later on the Profile tab.
+  async function handleGuest() {
+    setError(null)
+    setGuestLoading(true)
+    const { error: guestError } = await supabase.auth.signInAnonymously({
+      options: { data: { display_name: 'Guest' } },
+    })
+    setGuestLoading(false)
+
+    if (guestError) {
+      setError(
+        /disabled/i.test(guestError.message)
+          ? 'Guest accounts are turned off right now. Create an account instead.'
+          : guestError.message,
+      )
+    }
   }
 
 return (
@@ -79,6 +99,17 @@ return (
             <Pressable onPress={onSwitchToSignUp} accessibilityRole="link" hitSlop={8}>
               <Text style={authStyles.switchLink}>Create an account!</Text>
             </Pressable>
+          </View>
+
+          <View style={authStyles.switchRow}>
+            <Text style={authStyles.switchText}>Just looking? </Text>
+            {guestLoading ? (
+              <ActivityIndicator color={colors.gold} />
+            ) : (
+              <Pressable onPress={handleGuest} accessibilityRole="button" hitSlop={8}>
+                <Text style={authStyles.switchLink}>Continue as a guest</Text>
+              </Pressable>
+            )}
           </View>
         </AuthCard>
       </ScrollView>

@@ -17,7 +17,7 @@ import PresetModeScreen, { type PresetKey } from './src/screens/presetModes';
 import AchievementsScreen from './src/screens/achievementsScreen';
 import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { AuthGate } from './src/components/AuthGate';
-import { fetchLastUsed, startModeSession } from './src/stats/modeSessions';
+import { endModeSession, fetchLastUsed, startModeSession } from './src/stats/modeSessions';
 import CustomModeScreen from './src/screens/customModeScreen';
 import ModesScreen from './src/screens/modesScreen';
 import type { CustomMode, CustomModeInput } from './src/types/mode';
@@ -36,6 +36,7 @@ import {
   joinModeGroup,
   leaveModeGroup,
   setGroupModeRunning,
+  setGroupTimer,
   shareMode,
   stopSharingMode,
   toModeGroups,
@@ -45,6 +46,8 @@ import {
 
 // How often we check if a friend started a shared mode (only while you've joined one)
 const GROUP_CHECK_MS = 8000;
+// How often we check while you're inside a friend's mode, to keep up with their timer
+const FOLLOWING_CHECK_MS = 3000;
 
 const IMAGES = [
   require('./assets/Modos/ModoStudy.png'),
@@ -91,8 +94,20 @@ function AppContent() {
 
   // Sharing: modes the user shares with friends, and friends' modes they joined
   const [groups, setGroups] = useState<ModeGroups>(NO_GROUPS);
+  // The latest sharing info, for popups and timers that were set up on an earlier screen
+  const groupsRef = useRef(groups);
+  groupsRef.current = groups;
   const groupsSignatureRef = useRef('');
   const lastHostStartsRef = useRef<Record<string, number>>({});
+  // The friend's shared mode you're inside right now (null = you're not in one).
+  // Only the host controls it, so you just follow along.
+  const [following, setFollowing] = useState<{
+    groupId: string;
+    hostName: string;
+    modeName: string;
+  } | null>(null);
+  const followingRef = useRef(following);
+  followingRef.current = following;
 
   // When each mode was last started, so the home screen can show the most recent ones
   const [lastUsed, setLastUsed] = useState<Record<string, number>>({});
@@ -128,6 +143,7 @@ function AppContent() {
     setGroups(NO_GROUPS);
     groupsSignatureRef.current = '';
     lastHostStartsRef.current = {};
+    setFollowing(null);
     setLastUsed({});
 
     if (!session?.user.id) {
@@ -181,6 +197,7 @@ function AppContent() {
   // While you've joined a friend's mode, keep checking if they started it
   // (this also picks up any changes they made to its settings)
   const hasJoinedModes = groups.joined.length > 0;
+  const followingGroupId = following?.groupId ?? null;
   useEffect(() => {
     if (!session?.user.id || !hasJoinedModes) return;
 
@@ -188,28 +205,52 @@ function AppContent() {
       if (AppState.currentState === 'active') {
         loadGroups().catch(() => {});
       }
-    }, GROUP_CHECK_MS);
+    }, followingGroupId ? FOLLOWING_CHECK_MS : GROUP_CHECK_MS);
 
     return () => clearInterval(timer);
-  }, [session?.user.id, hasJoinedModes]);
+  }, [session?.user.id, hasJoinedModes, followingGroupId]);
 
-  // Loads everything about sharing, and asks to join if a friend just started a mode
-  async function loadGroups() {
+  // Loads everything about sharing, and asks to join if a friend just started a mode.
+  // quiet = don't show the "want to join?" popup (used when you're already joining).
+  // Gives back the latest sharing info, or null if the user changed while loading.
+  async function loadGroups({ quiet = false }: { quiet?: boolean } = {}): Promise<ModeGroups | null> {
     const userId = userIdRef.current;
     const rows = await fetchGroupRows();
-    if (userIdRef.current !== userId) return; // logged out or switched account while loading
+    if (userIdRef.current !== userId) return null; // logged out or switched account while loading
+
+    const latest = toModeGroups(rows);
 
     // Only update the screen when something actually changed
     const signature = groupsSignature(rows);
     if (signature !== groupsSignatureRef.current) {
       groupsSignatureRef.current = signature;
-      setGroups(toModeGroups(rows));
+      setGroups(latest);
+    }
+
+    // If you're in a friend's mode and they end it (or stop sharing it), it ends for you too
+    const followed = followingRef.current;
+    if (followed) {
+      const joined = latest.joined.find((j) => j.groupId === followed.groupId);
+      if (!joined || joined.runningForSeconds === null) {
+        followingRef.current = null; // so a second check right after doesn't end it twice
+        void endModeSession();
+        setFollowing(null);
+        setActiveCustomMode(null);
+        setTab('home');
+        setScreen('home');
+        Alert.alert(
+          `${followed.hostName} ended ${followed.modeName}`,
+          joined
+            ? "You'll get a popup to join the next time they start it."
+            : 'They stopped sharing this mode.',
+        );
+      }
     }
 
     const justStarted = findNewHostStarts(rows, lastHostStartsRef.current);
-    if (justStarted.length === 0) return;
+    if (justStarted.length === 0 || quiet) return latest;
 
-    const joinedModes = toModeGroups(rows).joined;
+    const joinedModes = latest.joined;
     for (const row of justStarted) {
       const joined = joinedModes.find((j) => j.groupId === row.group_id);
       if (!joined || activeModeIdRef.current === joined.mode.id) continue;
@@ -223,10 +264,20 @@ function AppContent() {
         ],
       );
     }
+
+    return latest;
   }
 
-  // Opens a friend's mode after tapping Join
+  // Opens a friend's mode while they have it on (after tapping Join, or tapping the mode)
   function joinRunningMode(joined: JoinedMode) {
+    tellFriendsModeEnded(); // your own shared mode can't still be on while you're in theirs
+    const next = {
+      groupId: joined.groupId,
+      hostName: joined.hostName,
+      modeName: joined.mode.name.trim() || 'their mode',
+    };
+    followingRef.current = next;
+    setFollowing(next);
     setActiveCustomMode(joined.mode);
     void startModeSession(joined.mode.id);
     markUsed(joined.mode.id);
@@ -262,15 +313,16 @@ function AppContent() {
     }
   }
 
-  // If the user shares any modes, friends need to know when one starts or ends
-  const sharesAnyMode = Object.keys(groups.hosted).length > 0;
-
+  // If the user shares any modes, friends need to know when one ends.
+  // (Reads groupsRef because the "join" popup can call this from an older screen.)
   function tellFriendsModeEnded() {
+    const sharesAnyMode = Object.keys(groupsRef.current.hosted).length > 0;
     if (sharesAnyMode) void setGroupModeRunning(null, false);
   }
 
   // Starting a mode works the same from the home screen and the modes screen
   function startPresetMode(mode: PresetKey) {
+    setFollowing(null);
     startModeSession(mode);
     markUsed(mode);
     tellFriendsModeEnded(); // a shared mode can't still be running if you switched to this one
@@ -279,6 +331,7 @@ function AppContent() {
   }
 
   function startCustomMode(mode: CustomMode) {
+    setFollowing(null);
     setActiveCustomMode(mode);
     void startModeSession(mode.id);
     markUsed(mode.id);
@@ -292,6 +345,42 @@ function AppContent() {
     }
 
     setScreen('customMode');
+  }
+
+  // Tapping a custom mode on the home or modes screen.
+  // Your own modes start right away. A friend's shared mode works like a lobby:
+  // only they can start it, and you can hop in while it's on.
+  async function pressCustomMode(mode: CustomMode) {
+    const cached = groups.joined.find((j) => j.mode.id === mode.id);
+    if (!cached) {
+      startCustomMode(mode);
+      return;
+    }
+
+    // Check the latest first, in case they just started or ended it
+    let joined: JoinedMode | undefined = cached;
+    try {
+      const latest = await loadGroups({ quiet: true });
+      if (latest) joined = latest.joined.find((j) => j.groupId === cached.groupId);
+    } catch (error) {
+      console.warn('Could not check the shared mode:', error);
+    }
+
+    if (!joined) {
+      Alert.alert('Mode no longer shared', `${cached.hostName} stopped sharing this mode.`);
+      return;
+    }
+
+    if (joined.runningForSeconds !== null) {
+      joinRunningMode(joined);
+      return;
+    }
+
+    const name = joined.mode.name.trim() || 'this mode';
+    Alert.alert(
+      `Waiting for ${joined.hostName}`,
+      `Only ${joined.hostName} can start ${name}. You'll get a popup when they do, or tap it again while it's on to join.`,
+    );
   }
 
   // Deletes a mode from Supabase, then takes it off every screen
@@ -373,6 +462,13 @@ function AppContent() {
   // The user's own modes plus friends' modes they joined (for the home and stats screens)
   const allCustomModes = [...customModes, ...groups.joined.map((joined) => joined.mode)];
 
+  // Inside a friend's mode: their latest settings and timer
+  const followedMode = following
+    ? groups.joined.find((j) => j.groupId === following.groupId)
+    : undefined;
+  // Inside your own shared mode: friends need to hear about your timer
+  const hostingActiveMode = !following && !!activeCustomMode && !!groups.hosted[activeCustomMode.id];
+
   return (
     <SafeAreaProvider>
       {/* Logged out: shows sign in / sign up. Logged in: shows everything inside. */}
@@ -383,7 +479,7 @@ function AppContent() {
               customModes={allCustomModes}
               lastUsed={lastUsed}
               onSeeAllModes={() => goToTab('modes')}
-              onCustomModePress={startCustomMode}
+              onCustomModePress={pressCustomMode}
               onModePress={startPresetMode}
               onCreateMode={() => openCreateMode('home')}
               onAchievements={() => setScreen('achievements')}
@@ -404,9 +500,18 @@ function AppContent() {
 
           {screen === 'customMode' && activeCustomMode && (
             <CustomModeScreen
-              mode={activeCustomMode}
+              mode={followedMode?.mode ?? activeCustomMode}
+              hostName={following?.hostName}
+              sharedTimer={followedMode?.timer ?? null}
+              onTimerChange={
+                hostingActiveMode
+                  ? (timer) => void setGroupTimer(activeCustomMode.id, timer)
+                  : undefined
+              }
               onEnd={() => {
-                tellFriendsModeEnded();
+                // Friends just leave. Hosts end it for everyone.
+                if (!following) tellFriendsModeEnded();
+                setFollowing(null);
                 setActiveCustomMode(null);
                 setTab('home');
                 setScreen('home');
@@ -425,7 +530,7 @@ function AppContent() {
               customModes={customModes}
               onPresetPress={startPresetMode}
               onEditPreset={(starter) => openCreateMode('modes', null, starter)}
-              onCustomModePress={startCustomMode}
+              onCustomModePress={pressCustomMode}
               onCreateMode={() => openCreateMode('modes')}
               onEditMode={(mode) => openCreateMode('modes', mode)}
               onDeleteMode={removeCustomMode}
