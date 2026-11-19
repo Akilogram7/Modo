@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Pressable,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -16,6 +15,7 @@ import { fonts, shadows, backgroundColors, gradientStops, gradientDirection } fr
 import { TimerSettings } from '../features/timer';
 import type { CustomModeInput } from '../types/mode';
 import { MusicSettings } from '../features/music';
+import { AlarmListEditor, newAlarm, PickerScrollView, type ModeAlarm } from '../features/alarm';
 import { MapCard } from '../features/maps/MapCard';
 import {
   EMPTY_MAP_SETTINGS,
@@ -139,6 +139,10 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
   const [timerMinutes, setTimerMinutes] = useState<number>(
     initialMode?.timerDuration ? Math.round(initialMode.timerDuration / 60) : 25,
   );
+  const [breakMinutes, setBreakMinutes] = useState<number>(initialMode?.breakMinutes ?? 0);
+  //alarm
+  const [alarmEnabled, setAlarmEnabled] = useState<boolean>(initialMode?.alarmEnabled ?? false);
+  const [alarms, setAlarms] = useState<ModeAlarm[]>(initialMode?.alarms ?? []);
   //music
   const [playlistUrl, setPlaylistUrl] = useState(initialMode?.playlistUrl ?? '');
   const [musicEnabled, setMusicEnabled] = useState(initialMode?.musicEnabled ?? false);
@@ -152,6 +156,11 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
     destination: initialMode?.mapDestination ?? null,
     travelMode: initialMode?.mapTravelMode ?? 'driving',
   });
+
+  // Scratchpad
+  const [scratchpadEnabled, setScratchpadEnabled] = useState(
+    initialMode?.scratchpadEnabled ?? false
+  );
   // text and buttons follow the chosen background colour
   const dark = isDark(color);
   const textColor = dark ? '#FFFFFF' : darken(color, 0.45);
@@ -164,7 +173,7 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
       end={gradientDirection.end}
       style={{ flex: 1 }}
     >
-      <ScrollView
+      <PickerScrollView
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 180 }]}
@@ -226,6 +235,38 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
             <TimerSettings
               durationMinutes={timerMinutes}
               onDurationChange={setTimerMinutes}
+              breakMinutes={breakMinutes}
+              onBreakChange={setBreakMinutes}
+              textColor={textColor}
+              accentColor={buttonColor}
+            />
+          )}
+        </View>
+
+        {/* alarm */}
+        <View style={[styles.panel, styles.features, { marginTop: 16 }]}>
+          <View style={styles.featureHeader}>
+            <Text style={[styles.featureTitle, { color: textColor }]}>
+              ALARM
+            </Text>
+            <Switch
+              value={alarmEnabled}
+              onValueChange={(on) => {
+                setAlarmEnabled(on);
+                // Turning alarms on starts you with one
+                if (on && alarms.length === 0) setAlarms([newAlarm()]);
+              }}
+              trackColor={{
+                false: '#999',
+                true: buttonColor,
+              }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+          {alarmEnabled && (
+            <AlarmListEditor
+              alarms={alarms}
+              onChange={setAlarms}
               textColor={textColor}
               accentColor={buttonColor}
             />
@@ -258,7 +299,6 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
             />
           )}
         </View>
-
 
         {/* weather */}
         <View style={[styles.panel, styles.features, { marginTop: 16 }]}>
@@ -316,6 +356,35 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
           )}
         </View>
 
+        {/* ─────────────── SCRATCHPAD ─────────────── */}
+        <View
+          style={[
+            styles.panel,
+            styles.features,
+            { marginTop: 16 },
+          ]}
+        >
+          <View style={styles.featureHeader}>
+            <Text
+              style={[
+                styles.featureTitle,
+                { color: textColor },
+              ]}
+            >
+              SCRATCHPAD
+            </Text>
+
+            <Switch
+              value={scratchpadEnabled}
+              onValueChange={setScratchpadEnabled}
+              trackColor={{
+                false: '#999',
+                true: buttonColor,
+              }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+        </View>
 
         <View style={styles.buttons}>
           <Pressable
@@ -333,21 +402,25 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
                 character,
                 timerEnabled,
                 timerDuration: timerEnabled ? timerMinutes * 60 : null,
+                breakMinutes: timerEnabled ? breakMinutes : 0,
                 musicEnabled,
                 playlistUrl: musicEnabled ? playlistUrl.trim() : null,
                 playlistName: musicEnabled ? playlistName.trim() : null,
                 weatherEnabled,
+                alarmEnabled: alarmEnabled && alarms.length > 0,
+                alarms: alarmEnabled ? alarms : [],
                 // Maps
                 mapEnabled: mapSettings.enabled,
                 mapDestination: mapSettings.destination,
                 mapTravelMode: mapSettings.travelMode,
+                scratchpadEnabled,
               })
             }
           >
             <Text style={styles.buttonText}>{editing ? 'Save Changes' : 'Create Mode'}</Text>
           </Pressable>
         </View>
-      </ScrollView>
+      </PickerScrollView>
     </LinearGradient>
   );
 }

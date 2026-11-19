@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase';
 import type { CustomMode } from '../types/mode';
+import { toAlarmList } from '../features/alarm/alarmList';
 
 export type NewCustomMode = Omit<CustomMode, 'id'>;
 
@@ -19,7 +20,6 @@ function toModeColumns(mode: NewCustomMode) {
             ? mode.timerDuration
             : null,
 
-
         feature_settings: {
             music: {
                 enabled: mode.musicEnabled,
@@ -33,11 +33,24 @@ function toModeColumns(mode: NewCustomMode) {
             weather: {
                 enabled: mode.weatherEnabled,
             },
-
+            timer: {
+                breakMinutes: mode.timerEnabled
+                    ? (mode.breakMinutes ?? 0)
+                    : 0,
+            },
+            alarm: {
+                enabled: mode.alarmEnabled,
+                alarms: mode.alarmEnabled
+                    ? mode.alarms
+                    : [],
+            },
             maps: {
                 enabled: mode.mapEnabled,
                 destination: mode.mapDestination,
                 travelMode: mode.mapTravelMode,
+            },
+            scratchpad: {
+                enabled: mode.scratchpadEnabled,
             },
         },
 
@@ -58,7 +71,9 @@ export function toCustomMode(row: any): CustomMode {
         playlistUrl: row.feature_settings?.music?.playlistUrl ?? null,
         playlistName: row.feature_settings?.music?.playlistName ?? null,
         weatherEnabled: row.feature_settings?.weather?.enabled ?? false,
-
+        breakMinutes: row.feature_settings?.timer?.breakMinutes ?? 0,
+        alarmEnabled: row.feature_settings?.alarm?.enabled ?? false,
+        alarms: toAlarmList(row.feature_settings?.alarm),
         mapEnabled: row.feature_settings?.maps?.enabled ?? false,
 
         mapDestination:
@@ -68,8 +83,10 @@ export function toCustomMode(row: any): CustomMode {
             row.feature_settings?.maps?.travelMode === 'walking'
                 ? 'walking'
                 : 'driving',
-    };
 
+        scratchpadEnabled:
+            row.feature_settings?.scratchpad?.enabled ?? false,
+    };
 }
 
 // Load only the signed-in user's modes.
