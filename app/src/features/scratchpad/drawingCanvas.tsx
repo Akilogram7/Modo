@@ -1,4 +1,3 @@
-
 import { useMemo, useRef, useState } from 'react';
 import {
   PanResponder,
@@ -7,6 +6,7 @@ import {
   Text,
   View,
 } from 'react-native';
+
 import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../../assets/theme';
@@ -20,6 +20,7 @@ type Stroke = {
 
 export default function DrawingCanvas() {
   const [tool, setTool] = useState<Tool>('pen');
+  const [expanded, setExpanded] = useState(false);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [currentStroke, setCurrentStroke] =
     useState<Stroke | null>(null);
@@ -27,7 +28,7 @@ export default function DrawingCanvas() {
   const toolRef = useRef<Tool>('pen');
   const currentRef = useRef<Stroke | null>(null);
 
-  const chooseTool = (nextTool: Tool) => {
+  const changeTool = (nextTool: Tool) => {
     toolRef.current = nextTool;
     setTool(nextTool);
   };
@@ -57,7 +58,9 @@ export default function DrawingCanvas() {
             event.nativeEvent;
 
           const stroke: Stroke = {
-            d: `M ${locationX} ${locationY} L ${locationX + 0.1} ${locationY + 0.1}`,
+            d: `M ${locationX} ${locationY} L ${
+              locationX + 0.1
+            } ${locationY + 0.1}`,
             tool: toolRef.current,
           };
 
@@ -99,12 +102,21 @@ export default function DrawingCanvas() {
     setCurrentStroke(null);
   };
 
-  const renderStroke = (stroke: Stroke, index: number) => (
+  const renderStroke = (
+    stroke: Stroke,
+    index: number
+  ) => (
     <Path
       key={index}
       d={stroke.d}
-      stroke={stroke.tool === 'pen' ? '#000000' : '#FFFFFF'}
-      strokeWidth={stroke.tool === 'pen' ? 3 : 22}
+      stroke={
+        stroke.tool === 'pen'
+          ? '#000000'
+          : '#FFFFFF'
+      }
+      strokeWidth={
+        stroke.tool === 'pen' ? 3 : 22
+      }
       strokeLinecap="round"
       strokeLinejoin="round"
       fill="none"
@@ -113,12 +125,11 @@ export default function DrawingCanvas() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>
-        Doodle Space
-      </Text>
-
       <View
-        style={styles.canvas}
+        style={[
+          styles.canvas,
+          { height: expanded ? 600 : 260 },
+        ]}
         {...panResponder.panHandlers}
       >
         <Svg
@@ -129,63 +140,85 @@ export default function DrawingCanvas() {
           {strokes.map(renderStroke)}
 
           {currentStroke &&
-            renderStroke(currentStroke, strokes.length)}
+            renderStroke(
+              currentStroke,
+              strokes.length
+            )}
         </Svg>
       </View>
 
       <View style={styles.toolbar}>
-        <Pressable
-          onPress={() => chooseTool('pen')}
-          style={[
-            styles.toolButton,
-            tool === 'pen' && styles.selectedTool,
-          ]}
-        >
-          <Ionicons
-            name="pencil"
-            size={21}
-            color="#000000"
-          />
-          <Text style={styles.toolText}>Pen</Text>
-        </Pressable>
+        <View style={styles.tools}>
+          <Pressable
+            onPress={() => changeTool('pen')}
+            style={[
+              styles.toolButton,
+              tool === 'pen' && styles.activeTool,
+            ]}
+          >
+            <Ionicons
+              name="pencil"
+              size={22}
+              color="#000000"
+            />
+          </Pressable>
+
+          <Pressable
+            onPress={() => changeTool('eraser')}
+            style={[
+              styles.toolButton,
+              tool === 'eraser' && styles.activeTool,
+            ]}
+          >
+            <Ionicons
+              name="color-wand-outline"
+              size={22}
+              color="#000000"
+            />
+          </Pressable>
+
+          <Pressable
+            onPress={undo}
+            style={styles.toolButton}
+          >
+            <Ionicons
+              name="arrow-undo"
+              size={22}
+              color="#000000"
+            />
+          </Pressable>
+
+          <Pressable
+            onPress={clear}
+            style={styles.toolButton}
+          >
+            <Ionicons
+              name="trash-outline"
+              size={22}
+              color="#000000"
+            />
+          </Pressable>
+        </View>
 
         <Pressable
-          onPress={() => chooseTool('eraser')}
-          style={[
-            styles.toolButton,
-            tool === 'eraser' && styles.selectedTool,
-          ]}
+          onPress={() =>
+            setExpanded((previous) => !previous)
+          }
+          style={styles.expandButton}
         >
           <Ionicons
-            name="color-wand-outline"
-            size={21}
+            name={
+              expanded
+                ? 'contract-outline'
+                : 'expand-outline'
+            }
+            size={17}
             color="#000000"
           />
-          <Text style={styles.toolText}>Erase</Text>
-        </Pressable>
 
-        <Pressable
-          onPress={undo}
-          style={styles.toolButton}
-        >
-          <Ionicons
-            name="arrow-undo"
-            size={21}
-            color="#000000"
-          />
-          <Text style={styles.toolText}>Undo</Text>
-        </Pressable>
-
-        <Pressable
-          onPress={clear}
-          style={styles.toolButton}
-        >
-          <Ionicons
-            name="trash-outline"
-            size={21}
-            color="#000000"
-          />
-          <Text style={styles.toolText}>Clear</Text>
+          <Text style={styles.expandText}>
+            {expanded ? 'Collapse' : 'Expand'}
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -194,50 +227,57 @@ export default function DrawingCanvas() {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 18,
-  },
-
-  heading: {
-    fontFamily: fonts.headingBold,
-    fontSize: 20,
-    color: '#000000',
-    marginBottom: 10,
+    width: '100%',
   },
 
   canvas: {
-    height: 260,
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E8DED7',
+    borderColor: '#E5DED5',
     overflow: 'hidden',
   },
 
   toolbar: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: 6,
     marginTop: 12,
+    gap: 8,
+  },
+
+  tools: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
 
   toolButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 58,
-    paddingVertical: 7,
-    paddingHorizontal: 8,
+  },
+
+  activeTool: {
+    backgroundColor: '#E9E1D6',
+  },
+
+  expandButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     borderRadius: 12,
+    backgroundColor: '#F1EAE0',
   },
 
-  selectedTool: {
-    backgroundColor: '#E8DED7',
-  },
-
-  toolText: {
+  expandText: {
     fontFamily: fonts.heading,
-    fontSize: 13,
+    fontSize: 14,
     color: '#000000',
-    marginTop: 2,
   },
 });
