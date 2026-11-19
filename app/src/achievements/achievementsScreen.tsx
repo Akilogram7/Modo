@@ -8,7 +8,12 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, shadows, backgroundColors} from '../../assets/theme';
+import {
+  colors,
+  fonts,
+  shadows,
+  backgroundColors,
+} from '../../assets/theme';
 import { achievements, RARITY_XP } from './achievementCatalog';
 
 // ─────────────── ACHIEVEMENT COLOURS ───────────────
@@ -17,10 +22,50 @@ const ACHIEVEMENT_COLORS = {
   gradientMain: '#FFB429',
   box: '#D38900',
   lockedBox: '#B19364',
-  secretBox: backgroundColors[3],
+  secretBox: backgroundColors[9],
   text: '#FFFFFF',
   secondaryText: '#FFF0D6',
   xp: '#FFE3A3',
+};
+
+// ─────────────── RARITY COLOURS ───────────────
+// Full colours for unlocked achievements
+const RARITY_COLORS = {
+  Common: '#C8B8A5',
+  Uncommon: '#AEB8C2',
+  Rare: '#729BD3',
+  Epic: '#A17BC9',
+  Legendary: '#ffab03',
+  Secret: ACHIEVEMENT_COLORS.secretBox,
+} as const;
+
+// Softer colours for locked achievements
+const LOCKED_RARITY_COLORS = {
+  Common: '#B6AA9A',
+  Uncommon: '#929DA8',
+  Rare: '#7489A5',
+  Epic: '#89779D',
+  Legendary: '#BAA075',
+  Secret: ACHIEVEMENT_COLORS.secretBox,
+} as const;
+
+// Display order
+const RARITIES = [
+  'Common',
+  'Uncommon',
+  'Rare',
+  'Epic',
+  'Legendary',
+  'Secret',
+] as const;
+
+const RARITY_EMOJIS = {
+  Common: '🌱',
+  Uncommon: '🥈',
+  Rare: '💎',
+  Epic: '👑',
+  Legendary: '🦄',
+  Secret: '🔮',
 };
 
 // ─────────────── GRADIENT ───────────────
@@ -31,7 +76,9 @@ const GRADIENT_END = { x: 0.22, y: 0.735 };
 // ─────────────── CARD DIMENSIONS ───────────────
 const BOX_GAP = 12;
 
-// ─────────────── TEMPORARY FRONTEND DATA ───────────────
+// ─────────────── FRONTEND PREVIEW ───────────────
+// true = show all achievements unlocked
+// false = show temporary locked/unlocked data
 const PREVIEW_ALL_UNLOCKED = false;
 
 const UNLOCKED_ACHIEVEMENTS = [1, 3, 5];
@@ -86,118 +133,154 @@ export default function AchievementsScreen({ onBack }: Props) {
           ACHIEVEMENTS
         </Text>
 
-        {/* ─────────────── ACHIEVEMENT GRID ─────────────── */}
-        <View style={styles.grid}>
-          {achievements.map((achievement) => {
-            const isUnlocked =
-              PREVIEW_ALL_UNLOCKED ||
-              UNLOCKED_ACHIEVEMENTS.includes(achievement.id);
+        {/* ─────────────── RARITY SECTIONS ─────────────── */}
+        {RARITIES.map((rarity) => {
+          const rarityAchievements = achievements.filter(
+            (achievement) => achievement.rarity === rarity
+          );
 
-            const isHiddenSecret =
-            achievement.rarity === 'Secret' && !isUnlocked; 
+          return (
+            <View key={rarity} style={styles.raritySection}>
 
-            const progress = isUnlocked
-              ? 100
-              : Math.max(
-                  0,
-                  Math.min(
-                    100,
-                    ACHIEVEMENT_PROGRESS[achievement.id] ?? 0
-                  )
-                );
+              {/* RARITY HEADING */}
+              <View style={styles.rarityHeader}>
+                <View style={styles.rarityHeadingRow}>
+                  <Text style={styles.rarityEmoji}>
+                    {RARITY_EMOJIS[rarity]}
+                  </Text>
 
-            return (
-              <View
-                key={achievement.id}
-                style={[
-                  styles.achievementCard,
-                  {
-                    width: boxW,
-                    height: boxH,
-                    backgroundColor:
-                      achievement.rarity === 'Secret'
-                        ? ACHIEVEMENT_COLORS.secretBox
-                        : isUnlocked
-                          ? ACHIEVEMENT_COLORS.box
-                          : ACHIEVEMENT_COLORS.lockedBox,
-                  },
-                ]}
-              >
-                <View style={styles.cardContent}>
+                  <Text style={styles.rarityTitle}>
+                    {rarity.toUpperCase()}
+                  </Text>
+                </View>
 
-                
-              {/* EMOJI */}
-              <Text style={styles.achievementIcon}>
-                {isHiddenSecret
-                  ? '❔'
-                  : isUnlocked
-                    ? achievement.emoji
-                    : '🔒'}
-              </Text>
-
-              {/* NAME */}
-              <Text
-                style={styles.achievementName}
-                numberOfLines={2}
-                adjustsFontSizeToFit
-              >
-                {isHiddenSecret ? '???' : achievement.name}
-              </Text>
-
-              {/* DESCRIPTION */}
-              <Text
-                style={styles.achievementDescription}
-                numberOfLines={3}
-                adjustsFontSizeToFit
-              >
-                {isHiddenSecret
-                  ? 'A secret awaits...'
-                  : achievement.description}
-              </Text>
-              {/* RARITY + XP */}
-              <View style={styles.rewardRow}>
-                <Text
-                  style={styles.achievementRarity}
-                  numberOfLines={1}
-                >
-                {isHiddenSecret
-                  ? 'Secret'
-                  : isUnlocked
-                    ? achievement.rarity
-                    : 'Locked'}
-                </Text>
-
-                <Text
-                  style={styles.achievementXP}
-                  numberOfLines={1}
-                >
-                  ⭐ +{RARITY_XP[achievement.rarity]} XP
+                <Text style={styles.rarityCount}>
+                  {rarityAchievements.length} Achievements
                 </Text>
               </View>
 
-              {/* PROGRESS BAR */}
-              {!isUnlocked && !isHiddenSecret &&(
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressBar}>
-                    <View
-                      style={[
-                        styles.progressFill,
-                        { width: `${progress}%` },
-                      ]}
-                    />
-                  </View>
+              {/* ACHIEVEMENT CARDS */}
+              <View style={styles.grid}>
+                {rarityAchievements.map((achievement) => {
 
-                  <Text style={styles.progressText}>
-                    {progress}%
-                  </Text>
-                </View>
-              )}
+                  const isUnlocked =
+                    PREVIEW_ALL_UNLOCKED ||
+                    UNLOCKED_ACHIEVEMENTS.includes(achievement.id);
+
+                  const isHiddenSecret =
+                    achievement.rarity === 'Secret' && !isUnlocked;
+
+                  const progress = isUnlocked
+                    ? 100
+                    : Math.max(
+                        0,
+                        Math.min(
+                          100,
+                          ACHIEVEMENT_PROGRESS[achievement.id] ?? 0
+                        )
+                      );
+
+                  const cardColor = isUnlocked
+                    ? RARITY_COLORS[achievement.rarity]
+                    : LOCKED_RARITY_COLORS[achievement.rarity];
+
+                  return (
+                    <View
+                      key={achievement.id}
+                      style={[
+                        styles.achievementCard,
+                        {
+                          width: boxW,
+                          height: boxH,
+                          backgroundColor: cardColor,
+                        },
+                      ]}
+                    >
+                      <View style={styles.cardContent}>
+
+                        {/* EMOJI */}
+                        <Text style={styles.achievementIcon}>
+                          {isHiddenSecret
+                            ? '❔'
+                            : isUnlocked
+                              ? achievement.emoji
+                              : '🔒'}
+                        </Text>
+
+                        {/* NAME */}
+                        <Text
+                          style={styles.achievementName}
+                          numberOfLines={2}
+                          adjustsFontSizeToFit
+                        >
+                          {isHiddenSecret
+                            ? '???'
+                            : achievement.name}
+                        </Text>
+
+                        {/* DESCRIPTION */}
+                        <Text
+                          style={styles.achievementDescription}
+                          numberOfLines={3}
+                          adjustsFontSizeToFit
+                        >
+                          {isHiddenSecret
+                            ? 'A secret awaits...'
+                            : achievement.description}
+                        </Text>
+
+                        {/* RARITY + XP */}
+                        <View style={styles.rewardRow}>
+                          <Text
+                            style={styles.achievementRarity}
+                            numberOfLines={1}
+                          >
+                            {isHiddenSecret
+                              ? 'Secret'
+                              : isUnlocked
+                                ? achievement.rarity
+                                : 'Locked'}
+                          </Text>
+
+                          <Text
+                            style={styles.achievementXP}
+                            numberOfLines={1}
+                          >
+                            ⭐ +{RARITY_XP[achievement.rarity]} XP
+                          </Text>
+                        </View>
+
+                        {/* PROGRESS BAR */}
+                        {!isUnlocked && !isHiddenSecret && (
+                          <View style={styles.progressContainer}>
+
+                            <View style={styles.progressBar}>
+                              <View
+                                style={[
+                                  styles.progressFill,
+                                  {
+                                    width: `${progress}%`,
+                                  },
+                                ]}
+                              />
+                            </View>
+
+                            <Text style={styles.progressText}>
+                              {progress}%
+                            </Text>
+
+                          </View>
+                        )}
+
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
 
             </View>
-          </View>
-        );
-      })}
-    </View>
+          );
+        })}
 
         {/* ─────────────── GO BACK BUTTON ─────────────── */}
         <View style={styles.buttonWrap}>
@@ -208,9 +291,12 @@ export default function AchievementsScreen({ onBack }: Props) {
             ]}
             onPress={onBack}
           >
-            <Text style={styles.buttonText}>Go Back</Text>
+            <Text style={styles.buttonText}>
+              Go Back
+            </Text>
           </Pressable>
         </View>
+
       </ScrollView>
     </LinearGradient>
   );
@@ -218,10 +304,12 @@ export default function AchievementsScreen({ onBack }: Props) {
 
 // ─────────────── STYLES ───────────────
 const styles = StyleSheet.create({
+
   scroll: {
     paddingHorizontal: 16,
   },
 
+  // ─────────────── TITLE ───────────────
   title: {
     fontSize: 40,
     lineHeight: 50,
@@ -231,6 +319,43 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
 
+  // ─────────────── RARITY SECTIONS ───────────────
+  raritySection: {
+    marginBottom: 30,
+  },
+
+  rarityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+
+  rarityHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+  },
+
+  rarityEmoji: {
+    fontSize: 23,
+  },
+
+  rarityTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 23,
+    color: colors.heading,
+  },
+
+  rarityCount: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: colors.otherText,
+    marginLeft: 6,
+  },
+
+  // ─────────────── GRID ───────────────
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -238,7 +363,7 @@ const styles = StyleSheet.create({
     rowGap: 28,
   },
 
-  // ─────────────── CARD ───────────────
+  // ─────────────── ACHIEVEMENT CARD ───────────────
   achievementCard: {
     borderRadius: 18,
     padding: 9,
