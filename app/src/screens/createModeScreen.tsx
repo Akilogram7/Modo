@@ -141,6 +141,12 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
   const [weatherEnabled, setWeatherEnabled] = useState(
     initialMode?.weatherEnabled ?? false
   );
+
+  // Scratchpad
+  const [scratchpadEnabled, setScratchpadEnabled] = useState(
+    initialMode?.scratchpadEnabled ?? false
+  );
+
   // text and buttons follow the chosen background colour
   const dark = isDark(color);
   const textColor = dark ? '#FFFFFF' : darken(color, 0.45);
@@ -248,7 +254,6 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
           )}
         </View>
 
-
         {/* weather */}
         <View style={[styles.panel, styles.features, { marginTop: 16 }]}>
           <View style={styles.featureHeader}>
@@ -268,7 +273,35 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
           </View>
         </View>
 
+        {/* ─────────────── SCRATCHPAD ─────────────── */}
+        <View
+          style={[
+            styles.panel,
+            styles.features,
+            { marginTop: 16 },
+          ]}
+        >
+          <View style={styles.featureHeader}>
+            <Text
+              style={[
+                styles.featureTitle,
+                { color: textColor },
+              ]}
+            >
+              SCRATCHPAD
+            </Text>
 
+            <Switch
+              value={scratchpadEnabled}
+              onValueChange={setScratchpadEnabled}
+              trackColor={{
+                false: '#999',
+                true: buttonColor,
+              }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+        </View>
 
         <View style={styles.buttons}>
           <Pressable
@@ -290,6 +323,7 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
                 playlistUrl: musicEnabled ? playlistUrl.trim() : null,
                 playlistName: musicEnabled ? playlistName.trim() : null,
                 weatherEnabled,
+                scratchpadEnabled,
               })
             }
           >

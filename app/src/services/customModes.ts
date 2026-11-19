@@ -19,7 +19,6 @@ function toModeColumns(mode: NewCustomMode) {
             ? mode.timerDuration
             : null,
 
-
         feature_settings: {
             music: {
                 enabled: mode.musicEnabled,
@@ -32,6 +31,9 @@ function toModeColumns(mode: NewCustomMode) {
             },
             weather: {
                 enabled: mode.weatherEnabled,
+            },
+            scratchpad: {
+            enabled: mode.scratchpadEnabled,
             },
         },
 
@@ -52,8 +54,8 @@ export function toCustomMode(row: any): CustomMode {
         playlistUrl: row.feature_settings?.music?.playlistUrl ?? null,
         playlistName: row.feature_settings?.music?.playlistName ?? null,
         weatherEnabled: row.feature_settings?.weather?.enabled ?? false,
+        scratchpadEnabled: row.feature_settings?.scratchpad?.enabled ?? false,
     };
-
 }
 
 // Load only the signed-in user's modes.

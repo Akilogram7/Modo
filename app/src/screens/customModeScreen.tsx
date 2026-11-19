@@ -10,6 +10,7 @@ import { endModeSession } from '../stats/modeSessions';
 import { MusicSettings } from '../features/music';
 import { openSpotifyPlaylist } from '../features/music';
 import { WeatherCard } from '../features/weather/WeatherCard';
+import Scratchpad from '../features/scratchpad/Scratchpad';
 import { useEffect, useState } from 'react';
 
 type Props = { mode: CustomMode; onEnd: () => void };
@@ -35,23 +36,25 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
   const [timerEnabled, setTimerEnabled] = useState(mode.timerEnabled);
   const [weatherEnabled, setWeatherEnabled] = useState(mode.weatherEnabled);
   const [musicEnabled, setMusicEnabled] = useState(mode.musicEnabled);
+  const [scratchpadEnabled, setScratchpadEnabled] = useState(mode.scratchpadEnabled ?? false);
 
   const finish = () => {
     void endModeSession();
     onEnd();
   };
 
-  useEffect(() => {
-    setTimerEnabled(mode.timerEnabled);
-    setWeatherEnabled(mode.weatherEnabled);
-    setMusicEnabled(mode.musicEnabled);
-  }, [
-    mode.id,
-    mode.timerEnabled,
-    mode.weatherEnabled,
-    mode.musicEnabled,
-  ]);
-
+useEffect(() => {
+  setTimerEnabled(mode.timerEnabled);
+  setWeatherEnabled(mode.weatherEnabled);
+  setMusicEnabled(mode.musicEnabled);
+  setScratchpadEnabled(mode.scratchpadEnabled ?? false);
+}, [
+  mode.id,
+  mode.timerEnabled,
+  mode.weatherEnabled,
+  mode.musicEnabled,
+  mode.scratchpadEnabled,
+]);
 
   return (
     <LinearGradient
@@ -61,10 +64,20 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
       end={{ x: 0.22, y: 0.735 }}
       style={{ flex: 1 }}
     >
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}
-        showsVerticalScrollIndicator={false}
-      >
+
+    <ScrollView
+      contentContainerStyle={[
+        styles.scroll,
+        {
+          paddingTop: insets.top + 24,
+          paddingBottom: insets.bottom + 160,
+        },
+      ]}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      showsVerticalScrollIndicator={false}
+    >
+      
         <Text style={[styles.title, { color: accent }]} numberOfLines={1} adjustsFontSizeToFit>
           {(mode.name || 'CUSTOM').toUpperCase()} MODE
         </Text>
@@ -151,14 +164,11 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
           )}
 
           {/* Only show this when the mode has no saved features */}
-          {!mode.timerEnabled &&
-            !mode.musicEnabled &&
-            !mode.weatherEnabled && (
+          {!mode.timerEnabled && !mode.musicEnabled && !mode.weatherEnabled && !mode.scratchpadEnabled &&(
               <Text style={[styles.note, { color: textColor }]}>
                 No features are enabled yet.
               </Text>
             )}
-
 
           {/* MUSIC — only available if enabled when creating the mode */}
           {mode.musicEnabled && (
@@ -215,7 +225,55 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
               </Text>
             </Pressable>
           )}
+                    
+            {/* ─────────────── SCRATCHPAD ─────────────── */}
+            {mode.scratchpadEnabled && (
+              <>
+                <Pressable
+                  style={[styles.row, { marginTop: 20 }]}
+                  onPress={() =>
+                    setScratchpadEnabled((prev) => !prev)
+                  }
+                  accessibilityRole="checkbox"
+                  accessibilityState={{
+                    checked: scratchpadEnabled,
+                  }}
+                >
+                  <View
+                    style={[
+                      styles.box,
+                      {
+                        backgroundColor: scratchpadEnabled
+                          ? '#FFFFFF'
+                          : accent,
+                        borderColor: accent,
+                      },
+                    ]}
+                  >
+                    {scratchpadEnabled && (
+                      <Ionicons
+                        name="checkmark"
+                        size={24}
+                        color={accent}
+                      />
+                    )}
+                  </View>
 
+                  <Text
+                    style={[
+                      styles.rowText,
+                      { color: textColor },
+                    ]}
+                  >
+                    SCRATCHPAD
+                  </Text>
+                </Pressable>
+
+                {scratchpadEnabled && (
+                  <Scratchpad modeId={mode.id} />
+                )}
+              </>
+            )}
           {/* end mode button */}
           <Pressable style={[styles.button, { backgroundColor: accent }]} onPress={finish}>
             <Text style={[styles.buttonText, { color: textColor }]}>END MODE</Text>

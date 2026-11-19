@@ -14,6 +14,8 @@ export type CustomModeInput = {
   playlistName: string | null;
 
   weatherEnabled: boolean;
+
+  scratchpadEnabled: boolean;
 };
 
 export type CustomMode = CustomModeInput & { id: string };
