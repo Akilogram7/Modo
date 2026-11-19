@@ -50,6 +50,158 @@ const ACCENT = {
   danger: backgroundColors[10],
 };
 
+
+// Temporary frontend XP — backend will provide real values later.
+
+const PREVIEW_TOTAL_XP = 650;
+
+const LEVEL_TITLES = [
+  { min: 1, name: 'Modo Newbie', emoji: '🐣' },
+  { min: 11, name: 'Modo Rookie', emoji: '🌱' },
+  { min: 21, name: 'Modo Explorer', emoji: '🧭' },
+  { min: 31, name: 'Modo Adventurer', emoji: '🎒' },
+  { min: 41, name: 'Modo Enthusiast', emoji: '✨' },
+  { min: 51, name: 'Modo Specialist', emoji: '🎯' },
+  { min: 61, name: 'Modo Expert', emoji: '🧠' },
+  { min: 71, name: 'Modo Mastermind', emoji: '🪄' },
+  { min: 81, name: 'Modo Legend', emoji: '👑' },
+  { min: 91, name: 'Modo Myth', emoji: '🌌' },
+  { min: 101, name: 'Modo Modo', emoji: '♾️' },
+];
+
+function getLevelInfo(totalXP: number) {
+  let level = 1;
+  let xpRemaining = Math.max(0, Math.floor(totalXP));
+  let xpNeeded = 100;
+
+  while (xpRemaining >= xpNeeded) {
+    xpRemaining -= xpNeeded;
+    level++;
+    xpNeeded = 100 + (level - 1) * 25;
+  }
+
+  const rank = [...LEVEL_TITLES]
+    .reverse()
+    .find((item) => level >= item.min)!;
+
+  return {
+    level,
+    rank,
+    currentXP: xpRemaining,
+    xpNeeded,
+    progress: (xpRemaining / xpNeeded) * 100,
+  };
+}
+
+
+function ModoXPCard() {
+  const { level, rank, currentXP, xpNeeded, progress } =
+    getLevelInfo(PREVIEW_TOTAL_XP);
+
+  return (
+    <View
+      style={{
+        width: '100%',
+        backgroundColor: '#FFF6F3',
+        borderRadius: 22,
+        padding: 18,
+        marginTop: 20,
+        ...shadows.raised,
+      }}
+    >
+
+{/* ─────────────── RANK HEADER ─────────────── */}
+<View
+  style={{
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+    width: '100%',
+  }}
+>
+  {/* RANK NAME + LEVEL */}
+  <View style={{ flexShrink: 1 }}>
+    <Text
+      style={{
+        fontFamily: fonts.headingBold,
+        fontSize: 22,
+        color: colors.heading,
+      }}
+    >
+      {rank.name}
+    </Text>
+
+    <Text
+      style={{
+        fontFamily: fonts.bodyBold,
+        fontSize: 15,
+        color: colors.otherText,
+      }}
+    >
+      Level {level}
+    </Text>
+  </View>
+
+  {/* RANK EMOJI */}
+  <Text
+    style={{
+      fontSize: 34,
+      marginLeft: 12,
+    }}
+  >
+    {rank.emoji}
+  </Text>
+</View>
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          marginBottom: 8,
+        }}
+      >
+        <Text style={{ fontFamily: fonts.bodyBold, fontSize: 12, color: colors.otherText }}>
+          {currentXP} / {xpNeeded} XP
+        </Text>
+
+        <Text style={{ fontFamily: fonts.bodyBold, fontSize: 12, color: colors.otherText }}>
+          Level {level + 1}
+        </Text>
+      </View>
+
+      <View
+        style={{
+          height: 12,
+          backgroundColor: '#E9D7BD',
+          borderRadius: 10,
+          overflow: 'hidden',
+        }}
+      >
+        <View
+          style={{
+            height: '100%',
+            width: `${progress}%`,
+            backgroundColor: '#E4A032',
+            borderRadius: 10,
+          }}
+        />
+      </View>
+
+      <Text
+        style={{
+          fontFamily: fonts.heading,
+          fontSize: 12,
+          color: colors.otherText,
+          textAlign: 'center',
+          marginTop: 10,
+        }}
+      >
+        {xpNeeded - currentXP} XP until Level {level + 1}!
+      </Text>
+    </View>
+  );
+}
+
 const DEFAULT_AVATAR = 'wave';
 
 function avatarSource(key: string | undefined) {
@@ -223,9 +375,13 @@ export default function ProfileScreen(_props: Props) {
               </View>
 
               <Text style={styles.ModoName}>{savedName || 'No name yet'}</Text>
+              
               {memberSince && (
                 <Text style={styles.ModoSub}>Member since {memberSince}</Text>
               )}
+
+            <ModoXPCard />
+
             </View>
             {/* Account info */}
             <View style={styles.card}>
