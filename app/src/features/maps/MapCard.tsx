@@ -21,6 +21,7 @@ import { RouteDetails } from './RouteDetails';
 import { TravelModeSelector } from './TravelModeSelector';
 import type { RouteResult, TravelMode } from './routeTypes';
 import { openExternalMaps } from './externalMaps';
+import { NearbyStops } from '../transit/NearbyStops';
 import {
     EMPTY_MAP_SETTINGS,
     type SavedMapSettings,
@@ -315,6 +316,7 @@ export function MapCard({
             </MapView>
 
             {route && <RouteDetails route={route} />}
+            <NearbyStops />
         </View>
     );
 }
