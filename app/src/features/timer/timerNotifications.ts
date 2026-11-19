@@ -116,3 +116,69 @@ export async function cancelTimerNotification(
     console.error('Failed to cancel timer notification:', error);
   }
 }
+
+// Any alert in `seconds` from now, like "Break time!" (used by timers with breaks)
+export async function scheduleAlertNotification(
+  seconds: number,
+  title: string,
+  body: string
+): Promise<string | null> {
+  if (notificationsDisabled || !Number.isFinite(seconds) || seconds <= 0) {
+    return null;
+  }
+
+  const requestedAt = Date.now();
+  const allowed = await setupTimerNotifications();
+  if (!allowed) {
+    return null;
+  }
+
+  try {
+    const elapsedSeconds = (Date.now() - requestedAt) / 1000;
+    const remainingSeconds = Math.max(1, Math.ceil(seconds - elapsedSeconds));
+
+    return await Notifications.scheduleNotificationAsync({
+      content: { title, body, sound: true },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: remainingSeconds,
+        ...(useCustomAndroidChannel ? { channelId: CHANNEL_ID } : {}),
+      },
+    });
+  } catch (error) {
+    console.error('Failed to schedule alert notification:', error);
+    return null;
+  }
+}
+
+// An alarm at an exact time on the phone's clock.
+// On Android, 'alarmClock' delivery rings on time even when the phone is saving battery.
+export async function scheduleAlarmNotification(
+  date: Date,
+  title: string,
+  body: string
+): Promise<string | null> {
+  if (notificationsDisabled || date.getTime() <= Date.now()) {
+    return null;
+  }
+
+  const allowed = await setupTimerNotifications();
+  if (!allowed) {
+    return null;
+  }
+
+  try {
+    return await Notifications.scheduleNotificationAsync({
+      content: { title, body, sound: true },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date,
+        delivery: 'alarmClock',
+        ...(useCustomAndroidChannel ? { channelId: CHANNEL_ID } : {}),
+      },
+    });
+  } catch (error) {
+    console.error('Failed to schedule alarm notification:', error);
+    return null;
+  }
+}
