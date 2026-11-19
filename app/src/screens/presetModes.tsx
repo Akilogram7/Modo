@@ -21,6 +21,7 @@ import { MusicSettings } from '../features/music';
 export type PresetKey = 'study' | 'sleep' | 'commute';
 import { useAuth } from '../providers/AuthProvider';
 import { WeatherCard } from '../features/weather/WeatherCard';
+import { MapCard } from '../features/maps/MapCard';
 import {
   normalizeSpotifyPlaylist,
   openSpotifyPlaylist,
@@ -32,10 +33,19 @@ import {
   type MusicPresetKey,
   type PresetMusic,
 } from '../features/music/presetMusic';
-// ─────────────── PRESET MODE COLOURS ───────────────
-// gradientTop = light end, gradientBottom = main colour,
-// accent = page title, checkboxes and buttons, text = labels, times and button text.
-// (kept here so theme.ts doesn't change; can be moved into theme.ts later)
+import {
+  EMPTY_MAP_SETTINGS,
+  type SavedMapSettings,
+} from '../features/maps/mapTypes';
+
+import {
+  loadPresetMaps,
+  savePresetMaps,
+} from '../features/maps/presetMaps';
+// ─────────────── PRESET MODE COLOURS ───────────────*
+// gradientTop = light end, gradientBottom = main colour,*
+// accent = page title, checkboxes and buttons, text = labels, times and button text.*
+// (kept here so theme.ts doesn't change; can be moved into theme.ts later)*
 const presetModeColors: Record<
   PresetKey,
   { gradientTop: string; gradientBottom: string; accent: string; text: string }
@@ -59,21 +69,21 @@ const presetModeColors: Record<
     text: '#FFFFFF',
   },
 };
-// same linear gradient on every mode page (from Figma: stops at 36% and 48%)
+// same linear gradient on every mode page (from Figma: stops at 36% and 48%)*
 const GRADIENT_STOPS = [0.36, 0.48] as const;
 const GRADIENT_START = { x: 1, y: 0 };
 const GRADIENT_END = { x: 0.22, y: 0.735 };
 type Row = {
   label: string;
   checked: boolean;
-  box?: boolean; // shows an empty box under the row (Commute: your route, weather)
+  box?: boolean; // shows an empty box under the row (Commute: your route, weather)*
 };
 type Preset = {
   title: string;
   image: number;
   rows: Row[];
-  time?: string; // big text under the rows
-  timeNote?: string; // small text under the big text
+  time?: string; // big text under the rows*
+  timeNote?: string; // small text under the big text*
 };
 const PRESETS: Record<PresetKey, Preset> = {
   study: {
@@ -107,7 +117,7 @@ const PRESETS: Record<PresetKey, Preset> = {
     ],
   },
 };
-// blends a colour toward black (used for the panel behind the rows)
+// blends a colour toward black (used for the panel behind the rows)*
 function darken(hex: string, amount: number) {
   const n = parseInt(hex.slice(1), 16);
   const mix = (c: number) => Math.round(c * (1 - amount));
@@ -126,7 +136,7 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
   const modoW = Math.min(width * 0.6, 260);
   const [timerEnabled, setTimerEnabled] = useState(true);
   const [weatherEnabled, setWeatherEnabled] = useState(true);
-  //Supabase auth session (used to load/save preset music)
+  //Supabase auth session (used to load/save preset music)*
   const { session } = useAuth();
   const supportsMusic = mode === 'study' || mode === 'commute';
   const [music, setMusic] = useState<PresetMusic>({
@@ -135,6 +145,12 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
   const [musicLoading, setMusicLoading] = useState(true);
   const [musicSaving, setMusicSaving] = useState(false);
   const [showMusicSettings, setShowMusicSettings] = useState(false);
+  const [mapSettings, setMapSettings] =
+    useState<SavedMapSettings>({ ...EMPTY_MAP_SETTINGS });
+
+  const [mapSaving, setMapSaving] = useState(false);
+
+  const [mapLoading, setMapLoading] = useState(true);
   useEffect(() => {
     let cancelled = false;
     setMusic({ ...EMPTY_PRESET_MUSIC });
@@ -168,7 +184,48 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
       cancelled = true;
     };
   }, [mode, session?.user.id, supportsMusic]);
-  //save function
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setMapSettings({ ...EMPTY_MAP_SETTINGS });
+    setMapLoading(true);
+
+    if (mode !== 'commute' || !session?.user.id) {
+      setMapLoading(false);
+      return;
+    }
+
+    loadPresetMaps('commute')
+      .then((settings) => {
+        if (!cancelled) {
+          setMapSettings(settings);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error('Failed to load maps:', error);
+          Alert.alert(
+            'Map settings',
+            'Unable to load your saved destination.',
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setMapLoading(false);
+        }
+      });
+
+
+
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, session?.user.id]);
+
+  // Save music settings
   async function handleSaveMusic() {
     if (!supportsMusic || musicSaving) return;
     if (
@@ -199,6 +256,33 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
       setMusicSaving(false);
     }
   }
+  async function handleSaveMapSettings(
+    settings: SavedMapSettings,
+  ): Promise<void> {
+    await savePresetMaps('commute', settings);
+    setMapSettings(settings);
+  }
+  // Toggle Maps without discarding the saved destination.
+  async function handleToggleMaps(): Promise<void> {
+    if (mapLoading || mapSaving || !session?.user.id) return;
+
+    const nextSettings: SavedMapSettings = {
+      ...mapSettings,
+      enabled: !mapSettings.enabled,
+    };
+
+    setMapSaving(true);
+    try {
+      await savePresetMaps('commute', nextSettings);
+      setMapSettings(nextSettings);
+    } catch (error) {
+      console.error('Failed to toggle Maps:', error);
+      Alert.alert('Map settings', 'Unable to update your Maps preference.');
+    } finally {
+      setMapSaving(false);
+    }
+  }
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -236,19 +320,23 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
             <View style={styles.list}>
               {preset.rows.map((r) => {
                 const isChecked =
-                  r.label === 'PLAYLIST' && supportsMusic
-                    ? music.enabled
-                    : r.label === 'TIMER' && mode === 'study'
-                      ? timerEnabled
-                      : r.label === 'WEATHER' && mode === 'commute'
-                        ? weatherEnabled
-                        : r.checked;
+                  r.label === "YOUR ROUTE" && mode === 'commute'
+                    ? mapSettings.enabled
+                    : r.label === 'PLAYLIST' && supportsMusic
+                      ? music.enabled
+                      : r.label === 'TIMER' && mode === 'study'
+                        ? timerEnabled
+                        : r.label === 'WEATHER' && mode === 'commute'
+                          ? weatherEnabled
+                          : r.checked;
                 const canToggle =
+                  (r.label === 'YOUR ROUTE' && mode === 'commute') ||
                   (r.label === 'PLAYLIST' && supportsMusic) ||
                   (r.label === 'TIMER' && mode === 'study') ||
                   (r.label === 'WEATHER' && mode === 'commute');
                 const toggleDisabled =
-                  r.label === 'PLAYLIST' && (musicLoading || musicSaving);
+                  (r.label === 'PLAYLIST' && (musicLoading || musicSaving)) ||
+                  (r.label === 'YOUR ROUTE' && (mapLoading || mapSaving));
                 return (
                   <View key={r.label}>
                     <Pressable
@@ -256,14 +344,13 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                       accessibilityRole={canToggle ? 'checkbox' : undefined}
                       accessibilityState={canToggle ? { checked: isChecked, disabled: toggleDisabled } : undefined}
                       onPress={() => {
-                        if (r.label === 'TIMER' && mode === 'study') { } else if (r.label === 'PLAYLIST' && supportsMusic) {
+                        if (r.label === 'YOUR ROUTE' && mode === 'commute') {
+                          void handleToggleMaps();
+                        } else if (r.label === 'TIMER' && mode === 'study') {
+                          setTimerEnabled((prev) => !prev);
+                        } else if (r.label === 'PLAYLIST' && supportsMusic) {
                           const nextEnabled = !music.enabled;
-
-                          setMusic((prev) => ({
-                            ...prev,
-                            enabled: nextEnabled,
-                          }));
-
+                          setMusic((prev) => ({ ...prev, enabled: nextEnabled }));
                           setShowMusicSettings(nextEnabled);
 
                           if (!nextEnabled) {
@@ -272,38 +359,46 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                               enabled: false,
                             }).catch((error) => {
                               console.error('Failed to disable music:', error);
-                              Alert.alert(
-                                'Save failed',
-                                'Unable to save your music preference.',
-                              );
+                              Alert.alert('Save failed', 'Unable to save your music preference.');
                             });
                           }
-                        }
-                        else if (r.label === 'WEATHER' && mode === 'commute') {
+                        } else if (r.label === 'WEATHER' && mode === 'commute') {
                           setWeatherEnabled((prev) => !prev);
                         }
                       }}
                       style={styles.row}
                     >
-                      <View
-                        style={[
-                          styles.box,
-                          {
-                            borderColor: c.accent,
-                            backgroundColor: isChecked ? c.text : c.accent,
-                          },
-                        ]}
-                      >
-                        {isChecked && (
-                          <Ionicons name="checkmark" size={24} color={c.accent} />
-                        )}
-                      </View>
-                      <Text style={[styles.rowText, { color: c.text }]}>
-                        {r.label}
-                      </Text>
-                    </Pressable>
+                    <View
+                      style={[
+                        styles.box,
+                        {
+                          borderColor: c.accent,
+                          backgroundColor: isChecked ? c.text : c.accent,
+                        },
+                      ]}
+                    >
+                      {isChecked && (
+                        <Ionicons name="checkmark" size={24} color={c.accent} />
+                      )}
+                    </View>
+                    <Text style={[styles.rowText, { color: c.text }]}>
+                      {r.label}
+                    </Text>
+                  </Pressable>
                     {mode === 'commute' && r.label === 'WEATHER' ? (
                       weatherEnabled ? <WeatherCard /> : null
+                    ) : mode === 'commute' && r.label === 'YOUR ROUTE' ? (
+                      mapLoading ? (
+                        <Text style={{ color: c.text, padding: 12 }}>
+                          Loading saved map settings...
+                        </Text>
+                      ) : mapSettings.enabled ? (
+                        <MapCard
+                          key={`${mode}-${session?.user.id ?? 'guest'}`}
+                          initialSettings={mapSettings}
+                          onSaveSettings={handleSaveMapSettings}
+                        />
+                      ) : null
                     ) : r.box ? (
                       <View
                         style={[
@@ -312,118 +407,118 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                         ]}
                       />
                     ) : null}
-                  </View>
-                );
-              })}
             </View>
-            {/* Reuse the same timer in Study Mode and custom modes. */}
-            {mode === 'study' && timerEnabled && (
-              <FocusTimer
-                initialDurationSeconds={120 * 60}
+            );
+              })}
+          </View>
+          {/* Reuse the same timer in Study Mode and custom modes. */}
+          {mode === 'study' && timerEnabled && (
+            <FocusTimer
+              initialDurationSeconds={120 * 60}
+              textColor={c.text}
+              accentColor={c.accent}
+            />
+          )}
+          {supportsMusic && !musicLoading && music.enabled && showMusicSettings && (
+            <View style={styles.musicSettingsPanel}>
+              <MusicSettings
+                playlistUrl={music.playlistUrl}
+                onPlaylistChange={(url) =>
+                  setMusic((prev) => ({
+                    ...prev,
+                    playlistUrl: url,
+                  }))
+                }
+                playlistName={music.playlistName}
+                onPlaylistNameChange={(name) =>
+                  setMusic((prev) => ({
+                    ...prev,
+                    playlistName: name,
+                  }))
+                }
                 textColor={c.text}
                 accentColor={c.accent}
               />
-            )}
-            {supportsMusic && !musicLoading && music.enabled && showMusicSettings && (
-              <View style={styles.musicSettingsPanel}>
-                  <MusicSettings
-                    playlistUrl={music.playlistUrl}
-                    onPlaylistChange={(url) =>
-                      setMusic((prev) => ({
-                        ...prev,
-                        playlistUrl: url,
-                      }))
-                    }
-                    playlistName={music.playlistName}
-                    onPlaylistNameChange={(name) =>
-                      setMusic((prev) => ({
-                        ...prev,
-                        playlistName: name,
-                      }))
-                    }
-                    textColor={c.text}
-                    accentColor={c.accent}
-                  />
-                <Pressable
-                  disabled={musicSaving}
-                  onPress={handleSaveMusic}
-                  style={[
-                    styles.saveMusicButton,
-                    { backgroundColor: c.accent },
-                  ]}
-                >
-                  <Text style={styles.saveMusicText}>
-                    {musicSaving ? 'SAVING...' : 'SAVE MUSIC SETTINGS'}
-                  </Text>
-                </Pressable>
-              </View>
-            )}
-            {preset.timeNote && <Text style={[styles.timeNote, { color: c.text }]}>{preset.timeNote}</Text>}
-            {/* more space above the buttons when there's no time text (Commute) */}
-            <View style={[styles.buttons, { marginTop: preset.time ? 20 : 44 }]}>
-              {supportsMusic &&
-                !musicLoading &&
-                music.enabled &&
-                normalizeSpotifyPlaylist(music.playlistUrl) && (
-                  <Pressable
-                    onPress={async () => {
-                      try {
-                        await openSpotifyPlaylist(music.playlistUrl);
-                      } catch {
-                        Alert.alert(
-                          'Spotify error',
-                          'Unable to open your playlist.',
-                        );
-                      }
-                    }}
-                    style={({ pressed }) => [
-                      styles.spotifyButton,
-                      pressed && styles.pressed,
-                    ]}
-                  >
-                    <Ionicons
-                      name="musical-notes"
-                      size={30}
-                      color="#FFFFFF"
-                    />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.spotifyButtonText}>
-                        OPEN SPOTIFY
-                      </Text>
-                      <Text
-                        style={styles.spotifyPlaylistName}
-                        numberOfLines={2}
-                      >
-                        {music.playlistName.trim() || 'YOUR PLAYLIST'}
-                      </Text>
-                    </View>
-                    <Ionicons
-                      name="open-outline"
-                      size={24}
-                      color="#FFFFFF"
-                    />
-                  </Pressable>
-                )}
               <Pressable
-                style={({ pressed }) => [styles.button, { backgroundColor: c.accent }, pressed && styles.pressed]}
-                onPress={onChangeSettings}
+                disabled={musicSaving}
+                onPress={handleSaveMusic}
+                style={[
+                  styles.saveMusicButton,
+                  { backgroundColor: c.accent },
+                ]}
               >
-                <Text style={[styles.buttonText, { color: c.text }]}>CHANGE SETTINGS</Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [styles.button, { backgroundColor: c.accent }, pressed && styles.pressed]}
-                onPress={() => {
-                  endModeSession(); // saves when the mode ended, for stats
-                  onEnd?.();
-                }}
-              >
-                <Text style={[styles.buttonText, { color: c.text }]}>END MODE</Text>
+                <Text style={styles.saveMusicText}>
+                  {musicSaving ? 'SAVING...' : 'SAVE MUSIC SETTINGS'}
+                </Text>
               </Pressable>
             </View>
+          )}
+          {preset.timeNote && <Text style={[styles.timeNote, { color: c.text }]}>{preset.timeNote}</Text>}
+          {/* more space above the buttons when there's no time text (Commute) */}
+          <View style={[styles.buttons, { marginTop: preset.time ? 20 : 44 }]}>
+            {supportsMusic &&
+              !musicLoading &&
+              music.enabled &&
+              normalizeSpotifyPlaylist(music.playlistUrl) && (
+                <Pressable
+                  onPress={async () => {
+                    try {
+                      await openSpotifyPlaylist(music.playlistUrl);
+                    } catch {
+                      Alert.alert(
+                        'Spotify error',
+                        'Unable to open your playlist.',
+                      );
+                    }
+                  }}
+                  style={({ pressed }) => [
+                    styles.spotifyButton,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Ionicons
+                    name="musical-notes"
+                    size={30}
+                    color="#FFFFFF"
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.spotifyButtonText}>
+                      OPEN SPOTIFY
+                    </Text>
+                    <Text
+                      style={styles.spotifyPlaylistName}
+                      numberOfLines={2}
+                    >
+                      {music.playlistName.trim() || 'YOUR PLAYLIST'}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name="open-outline"
+                    size={24}
+                    color="#FFFFFF"
+                  />
+                </Pressable>
+              )}
+            <Pressable
+              style={({ pressed }) => [styles.button, { backgroundColor: c.accent }, pressed && styles.pressed]}
+              onPress={onChangeSettings}
+            >
+              <Text style={[styles.buttonText, { color: c.text }]}>CHANGE SETTINGS</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.button, { backgroundColor: c.accent }, pressed && styles.pressed]}
+              onPress={() => {
+                endModeSession(); // saves when the mode ended, for stats*
+                onEnd?.();
+              }}
+            >
+              <Text style={[styles.buttonText, { color: c.text }]}>END MODE</Text>
+            </Pressable>
           </View>
-        </ScrollView>
-      </LinearGradient>
-    </KeyboardAvoidingView>
+        </View>
+      </ScrollView>
+    </LinearGradient>
+    </KeyboardAvoidingView >
   );
 }
 const styles = StyleSheet.create({
@@ -463,7 +558,7 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 18,
     marginTop: 10,
-    marginLeft: 46, // lines up with the label (box 32 + gap 14)
+    marginLeft: 46, // lines up with the label (box 32 + gap 14)*
     opacity: 0.8,
   },
   time: {

@@ -16,6 +16,11 @@ import { fonts, shadows, backgroundColors, gradientStops, gradientDirection } fr
 import { TimerSettings } from '../features/timer';
 import type { CustomModeInput } from '../types/mode';
 import { MusicSettings } from '../features/music';
+import { MapCard } from '../features/maps/MapCard';
+import {
+  EMPTY_MAP_SETTINGS,
+  type SavedMapSettings,
+} from '../features/maps/mapTypes';
 export const CHARACTERS = [
   require('../../assets/Modos/ModoWave.png'),
   require('../../assets/Modos/ModoWink.png'),
@@ -141,6 +146,12 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
   const [weatherEnabled, setWeatherEnabled] = useState(
     initialMode?.weatherEnabled ?? false
   );
+  // Maps
+  const [mapSettings, setMapSettings] = useState<SavedMapSettings>({
+    enabled: initialMode?.mapEnabled ?? false,
+    destination: initialMode?.mapDestination ?? null,
+    travelMode: initialMode?.mapTravelMode ?? 'driving',
+  });
   // text and buttons follow the chosen background colour
   const dark = isDark(color);
   const textColor = dark ? '#FFFFFF' : darken(color, 0.45);
@@ -268,6 +279,42 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
           </View>
         </View>
 
+        {/* Maps */}
+        <View style={[styles.panel, styles.features, { marginTop: 16 }]}>
+          <View style={styles.featureHeader}>
+            <Text style={[styles.featureTitle, { color: textColor }]}>
+              MAPS
+            </Text>
+
+            <Switch
+              value={mapSettings.enabled}
+              onValueChange={(enabled) =>
+                setMapSettings((prev) => ({
+                  ...prev,
+                  enabled,
+                }))
+              }
+              trackColor={{
+                false: '#999',
+                true: buttonColor,
+              }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          {mapSettings.enabled && (
+            <MapCard
+              key={initialMode?.mapDestination?.label ?? 'new-map'}
+              initialSettings={mapSettings}
+              onSaveSettings={async (settings) => {
+                setMapSettings({
+                  ...settings,
+                  enabled: true,
+                });
+              }}
+            />
+          )}
+        </View>
 
 
         <View style={styles.buttons}>
@@ -290,6 +337,10 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
                 playlistUrl: musicEnabled ? playlistUrl.trim() : null,
                 playlistName: musicEnabled ? playlistName.trim() : null,
                 weatherEnabled,
+                // Maps
+                mapEnabled: mapSettings.enabled,
+                mapDestination: mapSettings.destination,
+                mapTravelMode: mapSettings.travelMode,
               })
             }
           >

@@ -33,6 +33,12 @@ function toModeColumns(mode: NewCustomMode) {
             weather: {
                 enabled: mode.weatherEnabled,
             },
+
+            maps: {
+                enabled: mode.mapEnabled,
+                destination: mode.mapDestination,
+                travelMode: mode.mapTravelMode,
+            },
         },
 
     };
@@ -52,6 +58,16 @@ export function toCustomMode(row: any): CustomMode {
         playlistUrl: row.feature_settings?.music?.playlistUrl ?? null,
         playlistName: row.feature_settings?.music?.playlistName ?? null,
         weatherEnabled: row.feature_settings?.weather?.enabled ?? false,
+
+        mapEnabled: row.feature_settings?.maps?.enabled ?? false,
+
+        mapDestination:
+            row.feature_settings?.maps?.destination ?? null,
+
+        mapTravelMode:
+            row.feature_settings?.maps?.travelMode === 'walking'
+                ? 'walking'
+                : 'driving',
     };
 
 }
