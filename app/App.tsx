@@ -14,7 +14,7 @@ import CreateModeScreen, { CHARACTERS } from './src/screens/createModeScreen';
 import ProfileScreen from './src/screens/profileScreen';
 import StatsScreen from './src/screens/statsScreen';
 import PresetModeScreen, { type PresetKey } from './src/screens/presetModes';
-import AchievementsScreen from './src/screens/achievementsScreen';
+import AchievementsScreen from './src/achievements/achievementsScreen';
 import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { AuthGate } from './src/components/AuthGate';
 import { endModeSession, fetchLastUsed, startModeSession } from './src/stats/modeSessions';
@@ -56,7 +56,12 @@ const IMAGES = [
   require('./assets/Modos/ModoSunglasses.png'),
   require('./assets/Modos/ModoWave.png'),
 ];
-
+// True when nothing was changed on the Create / Edit Mode screen
+function sameSettings(before: CustomModeInput, after: CustomModeInput) {
+  return (Object.keys(after) as (keyof CustomModeInput)[]).every(
+    (key) => JSON.stringify(before[key]) === JSON.stringify(after[key]),
+  );
+}
 // AuthProvider wraps everything so any screen can use useAuth()
 export default function App() {
   return (
@@ -551,6 +556,12 @@ function AppContent() {
               onCreate={async (mode) => {
                 if (savingMode) return;
 
+                // Nothing changed: just go back instead of saving (or copying a preset)
+                const before = editingMode ?? prefillMode;
+                if (before && sameSettings(before, mode)) {
+                  setScreen(createFrom);
+                  return;
+                }
                 setSavingMode(true);
 
                 try {

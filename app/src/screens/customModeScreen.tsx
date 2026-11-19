@@ -12,6 +12,7 @@ import { endModeSession } from '../stats/modeSessions';
 import { MusicSettings } from '../features/music';
 import { openSpotifyPlaylist } from '../features/music';
 import { WeatherCard } from '../features/weather/WeatherCard';
+import { MapCard } from '../features/maps/MapCard';
 import { useEffect, useState } from 'react';
 
 type Props = {
@@ -55,6 +56,7 @@ export default function CustomModeScreen({
   const modeTitle = `${mode.name.trim() || 'Custom'} mode`;
   // The alarms are on while this mode is on. Changes made here only last until the mode ends.
   const [alarmsOn, setAlarmsOn] = useState(mode.alarmEnabled);
+  const [mapEnabled, setMapEnabled] = useState(mode.mapEnabled);
 
   const finish = () => {
     void endModeSession();
@@ -65,11 +67,13 @@ export default function CustomModeScreen({
     setTimerEnabled(mode.timerEnabled);
     setWeatherEnabled(mode.weatherEnabled);
     setMusicEnabled(mode.musicEnabled);
+    setMapEnabled(mode.mapEnabled);
   }, [
     mode.id,
     mode.timerEnabled,
     mode.weatherEnabled,
     mode.musicEnabled,
+    mode.mapEnabled,
   ]);
 
 
@@ -242,12 +246,12 @@ export default function CustomModeScreen({
           {!mode.timerEnabled &&
             !mode.musicEnabled &&
             !mode.weatherEnabled &&
-            !mode.alarmEnabled && (
+            !mode.alarmEnabled &&
+            !mode.mapEnabled && (
               <Text style={[styles.note, { color: textColor }]}>
                 No features are enabled yet.
               </Text>
             )}
-
 
           {/* MUSIC — only available if enabled when creating the mode */}
           {mode.musicEnabled && (
@@ -304,6 +308,49 @@ export default function CustomModeScreen({
                 {mode.playlistName?.trim() || 'YOUR PLAYLIST'}
               </Text>
             </Pressable>
+          )}
+
+          {/* MAPS — only available if enabled when creating the mode */}
+          {mode.mapEnabled && (
+            <>
+              <Pressable
+                style={[styles.row, { marginTop: 20 }]}
+                onPress={() => setMapEnabled((prev) => !prev)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: mapEnabled }}
+              >
+                <View
+                  style={[
+                    styles.box,
+                    {
+                      backgroundColor: mapEnabled ? '#FFFFFF' : accent,
+                      borderColor: accent,
+                    },
+                  ]}
+                >
+                  {mapEnabled && (
+                    <Ionicons name="checkmark" size={24} color={accent} />
+                  )}
+                </View>
+
+                <Text style={[styles.rowText, { color: textColor }]}>
+                  MAPS
+                </Text>
+              </Pressable>
+
+              {mapEnabled && (
+                <View style={{ marginTop: 16 }}>
+                  <MapCard
+                    key={mode.id}
+                    initialSettings={{
+                      enabled: true,
+                      destination: mode.mapDestination,
+                      travelMode: mode.mapTravelMode,
+                    }}
+                  />
+                </View>
+              )}
+            </>
           )}
 
           {/* end mode button */}

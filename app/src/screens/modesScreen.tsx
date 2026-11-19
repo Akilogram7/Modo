@@ -91,6 +91,9 @@ function starterFor(preset: (typeof PRESETS)[number]): CustomModeInput {
     weatherEnabled: !!preset.weather,
     alarmEnabled: !!preset.alarm,
     alarms: preset.alarm ? [newAlarm()] : [],
+    mapEnabled: false,
+    mapDestination: null,
+    mapTravelMode: 'driving',
   };
 }
 

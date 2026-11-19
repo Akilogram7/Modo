@@ -45,6 +45,12 @@ function toModeColumns(mode: NewCustomMode) {
                     ? mode.alarms
                     : [],
             },
+
+            maps: {
+                enabled: mode.mapEnabled,
+                destination: mode.mapDestination,
+                travelMode: mode.mapTravelMode,
+            },
         },
 
     };
@@ -67,6 +73,16 @@ export function toCustomMode(row: any): CustomMode {
         breakMinutes: row.feature_settings?.timer?.breakMinutes ?? 0,
         alarmEnabled: row.feature_settings?.alarm?.enabled ?? false,
         alarms: toAlarmList(row.feature_settings?.alarm),
+
+        mapEnabled: row.feature_settings?.maps?.enabled ?? false,
+
+        mapDestination:
+            row.feature_settings?.maps?.destination ?? null,
+
+        mapTravelMode:
+            row.feature_settings?.maps?.travelMode === 'walking'
+                ? 'walking'
+                : 'driving',
     };
 
 }
