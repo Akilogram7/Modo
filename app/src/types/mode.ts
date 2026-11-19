@@ -1,5 +1,7 @@
 // Shared data shape for modes created by the user.
 // timerDuration is stored in SECONDS, matching CreateModeScreen.
+import type { MapLocation } from '../features/location/locationService';
+import type { TravelMode } from '../features/maps/routeTypes';
 
 export type CustomModeInput = {
   name: string;
@@ -14,6 +16,11 @@ export type CustomModeInput = {
   playlistName: string | null;
 
   weatherEnabled: boolean;
+
+  // Maps
+  mapEnabled: boolean;
+  mapDestination: MapLocation | null;
+  mapTravelMode: TravelMode;
 };
 
 export type CustomMode = CustomModeInput & { id: string };
