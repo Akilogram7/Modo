@@ -11,6 +11,7 @@ import { MusicSettings } from '../features/music';
 import { openSpotifyPlaylist } from '../features/music';
 import { WeatherCard } from '../features/weather/WeatherCard';
 import { MapCard } from '../features/maps/MapCard';
+import Scratchpad from '../features/scratchpad/Scratchpad';
 import { useEffect, useState } from 'react';
 
 type Props = { mode: CustomMode; onEnd: () => void };
@@ -37,6 +38,7 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
   const [weatherEnabled, setWeatherEnabled] = useState(mode.weatherEnabled);
   const [musicEnabled, setMusicEnabled] = useState(mode.musicEnabled);
   const [mapEnabled, setMapEnabled] = useState(mode.mapEnabled);
+  const [scratchpadEnabled, setScratchpadEnabled] = useState(mode.scratchpadEnabled ?? false);
 
   const finish = () => {
     void endModeSession();
@@ -48,14 +50,15 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
     setWeatherEnabled(mode.weatherEnabled);
     setMusicEnabled(mode.musicEnabled);
     setMapEnabled(mode.mapEnabled);
+    setScratchpadEnabled(mode.scratchpadEnabled ?? false);
   }, [
     mode.id,
     mode.timerEnabled,
     mode.weatherEnabled,
     mode.musicEnabled,
     mode.mapEnabled,
+    mode.scratchpadEnabled,
   ]);
-
 
   return (
     <LinearGradient
@@ -65,10 +68,20 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
       end={{ x: 0.22, y: 0.735 }}
       style={{ flex: 1 }}
     >
+
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingTop: insets.top + 24,
+            paddingBottom: insets.bottom + 160,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
+
         <Text style={[styles.title, { color: accent }]} numberOfLines={1} adjustsFontSizeToFit>
           {(mode.name || 'CUSTOM').toUpperCase()} MODE
         </Text>
@@ -82,8 +95,6 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
             { backgroundColor: darken(mode.color, 0.08) },
           ]}
         >
-
-
           {/* TIMER — only available if enabled when creating the mode */}
           {mode.timerEnabled && (
             <>
@@ -158,7 +169,8 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
           {!mode.timerEnabled &&
             !mode.musicEnabled &&
             !mode.weatherEnabled &&
-            !mode.mapEnabled && (
+            !mode.mapEnabled &&
+            !mode.scratchpadEnabled && (
               <Text style={[styles.note, { color: textColor }]}>
                 No features are enabled yet.
               </Text>
@@ -260,6 +272,35 @@ export default function CustomModeScreen({ mode, onEnd }: Props) {
                   />
                 </View>
               )}
+            </>
+          )}
+
+
+          {/* SCRATCHPAD — only available if enabled when creating the mode */}
+          {mode.scratchpadEnabled && (
+            <>
+              <Pressable
+                style={[styles.row, { marginTop: 20 }]}
+                onPress={() => setScratchpadEnabled((prev) => !prev)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: scratchpadEnabled }}
+              >
+                <View
+                  style={[
+                    styles.box,
+                    {
+                      backgroundColor: scratchpadEnabled ? '#FFFFFF' : accent,
+                      borderColor: accent,
+                    },
+                  ]}
+                >
+                  {scratchpadEnabled && (
+                    <Ionicons name="checkmark" size={24} color={accent} />
+                  )}
+                </View>
+                <Text style={[styles.rowText, { color: textColor }]}>SCRATCHPAD</Text>
+              </Pressable>
+              {scratchpadEnabled && <Scratchpad modeId={mode.id} />}
             </>
           )}
 

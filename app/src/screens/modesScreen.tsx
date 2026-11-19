@@ -48,30 +48,30 @@ const PRESETS: {
   timerMinutes?: number;
   weather?: boolean;
 }[] = [
-  {
-    id: 'study',
-    label: 'Study',
-    color: CARD.study,
-    img: require('../../assets/Modos/ModoStudy.png'),
-    character: 9,
-    timerMinutes: 120,
-  },
-  {
-    id: 'sleep',
-    label: 'Sleep',
-    color: CARD.sleep,
-    img: require('../../assets/Modos/ModoSleep.png'),
-    character: 11,
-  },
-  {
-    id: 'commute',
-    label: 'Commute',
-    color: CARD.commute,
-    img: require('../../assets/Modos/ModoRun.png'),
-    character: 8,
-    weather: true,
-  },
-];
+    {
+      id: 'study',
+      label: 'Study',
+      color: CARD.study,
+      img: require('../../assets/Modos/ModoStudy.png'),
+      character: 9,
+      timerMinutes: 120,
+    },
+    {
+      id: 'sleep',
+      label: 'Sleep',
+      color: CARD.sleep,
+      img: require('../../assets/Modos/ModoSleep.png'),
+      character: 11,
+    },
+    {
+      id: 'commute',
+      label: 'Commute',
+      color: CARD.commute,
+      img: require('../../assets/Modos/ModoRun.png'),
+      character: 8,
+      weather: true,
+    },
+  ];
 
 // What the Create Mode screen starts with when you edit a preset
 function starterFor(preset: (typeof PRESETS)[number]): CustomModeInput {
@@ -79,12 +79,21 @@ function starterFor(preset: (typeof PRESETS)[number]): CustomModeInput {
     name: preset.label,
     color: preset.color,
     character: preset.character,
+    //timer
     timerEnabled: !!preset.timerMinutes,
     timerDuration: preset.timerMinutes ? preset.timerMinutes * 60 : null,
+    //music
     musicEnabled: false,
     playlistUrl: null,
     playlistName: null,
+    //weather
     weatherEnabled: !!preset.weather,
+    //maps
+    mapEnabled: false,
+    mapDestination: null,
+    mapTravelMode: 'driving',
+    //scratchpad
+    scratchpadEnabled: false,
   };
 }
 
