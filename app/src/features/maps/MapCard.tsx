@@ -1,8 +1,8 @@
-
 import { useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Platform,
     Pressable,
     StyleSheet,
     Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 
+import { colors, fonts } from '../../../assets/theme';
 import { LocationPicker } from '../location/LocationPicker';
 import {
     getCurrentLocation,
@@ -26,6 +27,9 @@ import {
     type SavedMapSettings,
 } from './mapTypes';
 
+// The Baloo font sits a little high in its line on iPhone, so the text is nudged down to the middle
+const TEXT_NUDGE = Platform.OS === 'ios' ? 3 : 0;
+
 const INITIAL_REGION = {
     latitude: 43.9455,
     longitude: -78.8968,
@@ -36,11 +40,13 @@ const INITIAL_REGION = {
 type MapCardProps = {
     initialSettings?: SavedMapSettings;
     onSaveSettings?: (settings: SavedMapSettings) => Promise<void>;
+    accentColor?: string; // button and route-line colour (defaults to the theme's brown)
 };
 
 export function MapCard({
     initialSettings = EMPTY_MAP_SETTINGS,
     onSaveSettings,
+    accentColor = colors.otherText,
 }: MapCardProps) {
     const mapRef = useRef<MapView>(null);
     const requestId = useRef(0);
@@ -214,6 +220,7 @@ export function MapCard({
                 onSelect={handleOriginChange}
                 onUseGPS={handleUseGPS}
                 gpsLoading={gpsLoading}
+                accentColor={accentColor}
             />
 
             <LocationPicker
@@ -225,20 +232,23 @@ export function MapCard({
             <TravelModeSelector
                 value={travelMode}
                 onChange={handleTravelModeChange}
+                accentColor={accentColor}
             />
 
             <Pressable
-                style={[
-                    styles.routeButton,
+                style={({ pressed }) => [
+                    styles.button,
+                    { backgroundColor: accentColor },
                     (!origin || !destination || routeLoading) &&
                     styles.disabledButton,
+                    pressed && styles.pressed,
                 ]}
                 onPress={handleFindRoute}
                 disabled={!origin || !destination || routeLoading}
             >
                 {routeLoading ? (
                     <View style={styles.loadingRow}>
-                        <ActivityIndicator color="#FFF" />
+                        <ActivityIndicator color={colors.buttonText} />
                         <Text style={styles.buttonText}>
                             CALCULATING ROUTE...
                         </Text>
@@ -247,28 +257,38 @@ export function MapCard({
                     <Text style={styles.buttonText}>FIND ROUTE</Text>
                 )}
             </Pressable>
+
             {destination && (
                 <Pressable
-                    style={styles.externalMapsButton}
+                    style={({ pressed }) => [
+                        styles.button,
+                        styles.outlineButton,
+                        { borderColor: accentColor },
+                        pressed && styles.pressed,
+                    ]}
                     onPress={handleOpenExternalMaps}
                 >
-                    <Text style={styles.buttonText}>TAKE ME TO MAPS</Text>
+                    <Text style={[styles.buttonText, { color: accentColor }]}>
+                        TAKE ME TO MAPS
+                    </Text>
                 </Pressable>
             )}
 
 
             {onSaveSettings && destination && (
                 <Pressable
-                    style={[
-                        styles.saveMapButton,
+                    style={({ pressed }) => [
+                        styles.button,
+                        { backgroundColor: accentColor },
                         mapSaving && styles.disabledButton,
+                        pressed && styles.pressed,
                     ]}
                     onPress={handleSaveMapSettings}
                     disabled={mapSaving}
                 >
                     {mapSaving ? (
                         <View style={styles.loadingRow}>
-                            <ActivityIndicator color="#FFFFFF" />
+                            <ActivityIndicator color={colors.buttonText} />
                             <Text style={styles.buttonText}>SAVING...</Text>
                         </View>
                     ) : (
@@ -308,7 +328,7 @@ export function MapCard({
                 {route && (
                     <Polyline
                         coordinates={route.coordinates}
-                        strokeColor="#3578C8"
+                        strokeColor={accentColor}
                         strokeWidth={5}
                     />
                 )}
@@ -339,18 +359,35 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         marginTop: 12,
     },
-    routeButton: {
-        backgroundColor: '#3578C8',
-        borderRadius: 10,
-        padding: 14,
+    // every button on the card: rounded, same shape
+    button: {
+        borderRadius: 24,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
         alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 10,
+    },
+    outlineButton: {
+        backgroundColor: 'transparent',
+        borderWidth: 2,
     },
     disabledButton: {
         opacity: 0.5,
     },
+    pressed: {
+        transform: [{ scale: 0.97 }],
+    },
     buttonText: {
-        color: '#FFF',
-        fontWeight: 'bold',
+        color: colors.buttonText,
+        fontFamily: fonts.headingBold,
+        fontSize: 18,
+        lineHeight: 24,
+        letterSpacing: 0.5,
+        textAlign: 'center',
+        textAlignVertical: 'center',
+        includeFontPadding: false, // Android only: removes extra space above and below the text
+        transform: [{ translateY: TEXT_NUDGE }],
     },
     loadingRow: {
         flexDirection: 'row',
@@ -359,20 +396,6 @@ const styles = StyleSheet.create({
     },
     error: {
         color: '#B00020',
-        marginTop: 10,
-    },
-    externalMapsButton: {
-        backgroundColor: '#25835A',
-        borderRadius: 10,
-        padding: 14,
-        alignItems: 'center',
-        marginTop: 10,
-    },
-    saveMapButton: {
-        backgroundColor: '#256344',
-        borderRadius: 10,
-        padding: 14,
-        alignItems: 'center',
         marginTop: 10,
     },
 });

@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, memo, useContext, useEffect, useRef, useState } from 'react';
 import {
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +15,7 @@ import { parseAlarmTime, toAlarmTime } from './alarmTime';
 
 // Pick a time by sliding three wheels with your finger: hour, minute and AM/PM.
 // Each wheel snaps to the number in the middle when you let go.
+// The hour and minute wheels loop: after 12 comes 1 again, after 59 comes 00.
 
 type Props = {
   value: string; // "HH:MM", 24 hour clock
@@ -110,6 +112,7 @@ export default function AlarmTimePicker({ value, onChange, textColor, accentColo
         textColor={textColor}
         accentColor={accentColor}
         onSpin={onSpin}
+        loop
       />
       <Text style={[styles.colon, { color: textColor }]}>:</Text>
       <Wheel
@@ -120,6 +123,7 @@ export default function AlarmTimePicker({ value, onChange, textColor, accentColo
         textColor={textColor}
         accentColor={accentColor}
         onSpin={onSpin}
+        loop
       />
       <Wheel
         label="AM or PM"
@@ -140,6 +144,49 @@ const ITEM_HEIGHT = 44;
 const VISIBLE_ITEMS = 3; // the picked one in the middle, one above, one below
 const SETTLE_MS = 150; // how long the wheel has to stop moving before the number counts
 
+const PICKED_SIZE = 32;
+const OTHER_SIZE = 22;
+
+// The Baloo font sits a little high inside its line on iPhone, so the numbers are nudged down
+// to the middle of the band. Raise this if they still look high, lower it if they look low.
+// 0 = no nudge. (Set it to 0.18 for Android too if Android also looks high.)
+const NUDGE_RATIO = Platform.OS === 'ios' ? 0.18 : 0;
+
+// A looping wheel lays the numbers out many times over and starts in the middle copy,
+// so you can spin either way. Roughly this many numbers in total:
+const LOOP_TARGET_ITEMS = 240;
+
+function copiesFor(count: number) {
+  const copies = Math.max(3, Math.ceil(LOOP_TARGET_ITEMS / count));
+  return copies % 2 === 0 ? copies + 1 : copies; // odd, so there is a true middle copy
+}
+
+// One number on a wheel (memo so only the numbers that change get redrawn)
+const WheelItem = memo(function WheelItem({
+  text,
+  picked,
+  color,
+}: {
+  text: string;
+  picked: boolean;
+  color: string;
+}) {
+  const size = picked ? PICKED_SIZE : OTHER_SIZE;
+  return (
+    <View style={styles.item}>
+      <Text
+        style={[
+          styles.itemText,
+          { color, fontSize: size, lineHeight: size + 8, transform: [{ translateY: size * NUDGE_RATIO }] },
+          picked ? styles.itemPicked : styles.itemOther,
+        ]}
+      >
+        {text}
+      </Text>
+    </View>
+  );
+});
+
 function Wheel({
   label,
   items,
@@ -148,57 +195,88 @@ function Wheel({
   textColor,
   accentColor,
   onSpin,
+  loop = false,
 }: {
   label: string;
   items: string[];
-  index: number;
+  index: number; // which number is picked (0 = the first item)
   onChange: (index: number) => void;
   textColor: string;
   accentColor: string;
   onSpin: () => void;
+  loop?: boolean; // goes round and round instead of stopping at the ends
 }) {
+  const count = items.length;
+  const copies = loop ? copiesFor(count) : 1;
+  const total = count * copies;
+  const home = Math.floor(copies / 2) * count; // where the middle copy starts
+
   const scrollRef = useRef<ScrollViewInstance>(null);
-  const scrollY = useRef(index * ITEM_HEIGHT);
+  const scrollY = useRef((home + index) * ITEM_HEIGHT);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // The number in the middle right now (changes while sliding, before letting go)
-  const [middle, setMiddle] = useState(index);
+  const dragging = useRef(false);
+  // The spot in the long list that's in the middle right now (changes while sliding, before letting go)
+  const [middle, setMiddle] = useState(home + index);
 
-  const clamp = (i: number) => Math.max(0, Math.min(items.length - 1, i));
-  const indexAt = (y: number) => clamp(Math.round(y / ITEM_HEIGHT));
+  const posAt = (y: number) => Math.max(0, Math.min(total - 1, Math.round(y / ITEM_HEIGHT)));
+  const valueOf = (pos: number) => pos % count;
 
-  const commit = (i: number) => {
-    if (settleTimer.current) clearTimeout(settleTimer.current);
-    settleTimer.current = null;
-    if (i !== index) onChange(i);
+  // Jump back to the middle copy (it looks identical, so nobody sees it) so the wheel never runs out
+  const recenter = (pos: number) => {
+    if (!loop || dragging.current) return;
+    if (pos >= home && pos < home + count) return; // already in the middle copy
+    const target = home + valueOf(pos);
+    scrollY.current = target * ITEM_HEIGHT;
+    scrollRef.current?.scrollTo({ y: target * ITEM_HEIGHT, animated: false });
+    setMiddle(target);
   };
 
-  // If the time changes from somewhere else, roll the wheel to it
+  const commit = (pos: number) => {
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = null;
+    const value = valueOf(pos);
+    if (value !== index) onChange(value);
+    recenter(pos);
+  };
+
+  // If the time changes from somewhere else, roll the wheel to it (the short way round)
   useEffect(() => {
-    if (indexAt(scrollY.current) !== index) {
-      scrollRef.current?.scrollTo({ y: index * ITEM_HEIGHT, animated: true });
+    const pos = posAt(scrollY.current);
+    const current = valueOf(pos);
+    if (current === index) return;
+
+    let delta = index - current;
+    if (loop) {
+      if (delta > count / 2) delta -= count;
+      else if (delta < -count / 2) delta += count;
     }
-    // indexAt only depends on items.length, which never changes for a wheel
+    const target = Math.max(0, Math.min(total - 1, pos + delta));
+    scrollRef.current?.scrollTo({ y: target * ITEM_HEIGHT, animated: true });
+    // the helpers only depend on count, total and loop, which never change for a wheel
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
 
-  useEffect(() => () => {
-    if (settleTimer.current) clearTimeout(settleTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (settleTimer.current) clearTimeout(settleTimer.current);
+    },
+    [],
+  );
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = event.nativeEvent.contentOffset.y;
     scrollY.current = y;
-    const i = indexAt(y);
-    setMiddle(i);
+    const pos = posAt(y);
+    setMiddle(pos);
     onSpin();
 
     // Some phones don't say when the wheel stops, so also wait for it to go quiet
     if (settleTimer.current) clearTimeout(settleTimer.current);
-    settleTimer.current = setTimeout(() => commit(i), SETTLE_MS);
+    settleTimer.current = setTimeout(() => commit(pos), SETTLE_MS);
   };
 
   const onStop = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    commit(indexAt(event.nativeEvent.contentOffset.y));
+    commit(posAt(event.nativeEvent.contentOffset.y));
   };
 
   return (
@@ -211,7 +289,10 @@ function Wheel({
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
       onAccessibilityAction={(event) => {
         const step = event.nativeEvent.actionName === 'increment' ? 1 : -1;
-        commit(clamp(index + step));
+        const next = loop
+          ? (index + step + count) % count
+          : Math.max(0, Math.min(count - 1, index + step));
+        if (next !== index) onChange(next);
       }}
     >
       {/* The band that shows which number is picked */}
@@ -227,22 +308,18 @@ function Wheel({
         nestedScrollEnabled // lets the wheel spin inside a screen that also scrolls (Android)
         scrollEventThrottle={16}
         onScroll={onScroll}
+        onScrollBeginDrag={() => {
+          dragging.current = true;
+        }}
+        onScrollEndDrag={() => {
+          dragging.current = false;
+        }}
         onMomentumScrollEnd={onStop}
-        onLayout={() => scrollRef.current?.scrollTo({ y: index * ITEM_HEIGHT, animated: false })}
+        onLayout={() => scrollRef.current?.scrollTo({ y: (home + index) * ITEM_HEIGHT, animated: false })}
         testID={`wheel-${label}`}
       >
-        {items.map((item, i) => (
-          <View key={item} style={styles.item}>
-            <Text
-              style={[
-                styles.itemText,
-                { color: textColor },
-                i === middle ? styles.itemPicked : styles.itemOther,
-              ]}
-            >
-              {item}
-            </Text>
-          </View>
+        {Array.from({ length: total }, (_, pos) => (
+          <WheelItem key={pos} text={items[pos % count]} picked={pos === middle} color={textColor} />
         ))}
       </ScrollView>
     </View>
@@ -260,6 +337,7 @@ const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 42,
     fontFamily: fonts.headingBold,
+    transform: [{ translateY: 34 * NUDGE_RATIO * 0.7 }], // lines the colon up with the numbers
   },
   wheel: {
     flex: 1, // wider wheels are easier to grab, but they still shrink to fit small phones
@@ -290,14 +368,12 @@ const styles = StyleSheet.create({
   },
   itemText: {
     fontFamily: fonts.headingBold,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false, // Android only: removes the extra space above and below the text
   },
-  itemPicked: {
-    fontSize: 32,
-    lineHeight: 40,
-  },
+  itemPicked: {},
   itemOther: {
-    fontSize: 22,
-    lineHeight: 30,
     opacity: 0.4,
   },
 });
