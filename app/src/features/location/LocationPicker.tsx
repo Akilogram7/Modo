@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -8,8 +9,12 @@ import {
   View,
 } from 'react-native';
 
+import { colors, fonts } from '../../../assets/theme';
 import { searchAddresses } from './addressService';
 import type { MapLocation } from './locationService';
+
+// The Baloo font sits a little high in its line on iPhone, so the text is nudged down to the middle
+const TEXT_NUDGE = Platform.OS === 'ios' ? 3 : 0;
 
 type Props = {
   title: string;
@@ -17,6 +22,7 @@ type Props = {
   onSelect: (location: MapLocation) => void;
   onUseGPS?: () => void;
   gpsLoading?: boolean;
+  accentColor?: string; // button colour (defaults to the theme's brown)
 };
 
 export function LocationPicker({
@@ -25,6 +31,7 @@ export function LocationPicker({
   onSelect,
   onUseGPS,
   gpsLoading = false,
+  accentColor = colors.otherText,
 }: Props) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<MapLocation[]>([]);
@@ -100,9 +107,11 @@ export function LocationPicker({
 
       {onUseGPS && (
         <Pressable
-          style={[
+          style={({ pressed }) => [
             styles.gpsButton,
+            { backgroundColor: accentColor },
             gpsLoading && styles.gpsButtonDisabled,
+            pressed && styles.pressed,
           ]}
           onPress={onUseGPS}
           disabled={gpsLoading}
@@ -113,7 +122,7 @@ export function LocationPicker({
         >
           {gpsLoading ? (
             <View style={styles.gpsLoadingRow}>
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color={colors.buttonText} />
               <Text style={styles.gpsText}>
                 GETTING LOCATION...
               </Text>
@@ -172,15 +181,24 @@ const styles = StyleSheet.create({
     color: '#222',
     backgroundColor: '#FFF',
   },
+  // same rounded shape and font as the other buttons on the route card
   gpsButton: {
-    backgroundColor: '#3578C8',
-    padding: 12,
-    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 24,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   gpsText: {
-    color: '#FFF',
-    fontWeight: 'bold',
+    color: colors.buttonText,
+    fontFamily: fonts.headingBold,
+    fontSize: 18,
+    lineHeight: 24,
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false, // Android only: removes extra space above and below the text
+    transform: [{ translateY: TEXT_NUDGE }],
   },
   result: {
     padding: 12,
@@ -200,6 +218,9 @@ const styles = StyleSheet.create({
   },
   gpsButtonDisabled: {
     opacity: 0.7,
+  },
+  pressed: {
+    transform: [{ scale: 0.97 }],
   },
   gpsLoadingRow: {
     flexDirection: 'row',
