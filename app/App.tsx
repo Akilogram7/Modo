@@ -14,7 +14,7 @@ import CreateModeScreen, { CHARACTERS } from './src/screens/createModeScreen';
 import ProfileScreen from './src/screens/profileScreen';
 import StatsScreen from './src/screens/statsScreen';
 import PresetModeScreen, { type PresetKey } from './src/screens/presetModes';
-import AchievementsScreen from './src/screens/achievementsScreen';
+import AchievementsScreen from './src/achievements/achievementsScreen';
 import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { AuthGate } from './src/components/AuthGate';
 import { fetchLastUsed, startModeSession } from './src/stats/modeSessions';
