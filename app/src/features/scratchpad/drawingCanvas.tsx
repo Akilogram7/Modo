@@ -6,42 +6,58 @@ import {
   Text,
   View,
 } from 'react-native';
-
 import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
+
 import { fonts } from '../../../assets/theme';
+import type {
+  DrawingStroke,
+  DrawingTool,
+} from './scratchpadTypes';
 
-type Tool = 'pen' | 'eraser';
-
-type Stroke = {
-  d: string;
-  tool: Tool;
+type Props = {
+  strokes: DrawingStroke[];
+  onChange: (strokes: DrawingStroke[]) => void;
+  disabled?: boolean;
 };
 
-export default function DrawingCanvas() {
-  const [tool, setTool] = useState<Tool>('pen');
+export default function DrawingCanvas({
+  strokes,
+  onChange,
+  disabled = false,
+}: Props) {
+  const [tool, setTool] = useState<DrawingTool>('pen');
   const [expanded, setExpanded] = useState(false);
-  const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [currentStroke, setCurrentStroke] =
-    useState<Stroke | null>(null);
+    useState<DrawingStroke | null>(null);
 
-  const toolRef = useRef<Tool>('pen');
-  const currentRef = useRef<Stroke | null>(null);
+  const toolRef = useRef<DrawingTool>('pen');
+  const strokesRef = useRef(strokes);
+  const onChangeRef = useRef(onChange);
+  const currentRef = useRef<DrawingStroke | null>(null);
+  const disabledRef = useRef(disabled);
 
-  const changeTool = (nextTool: Tool) => {
+  // Keep touch handlers up to date.
+  strokesRef.current = strokes;
+  onChangeRef.current = onChange;
+  disabledRef.current = disabled;
+
+  const chooseTool = (nextTool: DrawingTool) => {
     toolRef.current = nextTool;
     setTool(nextTool);
   };
 
   const finishStroke = () => {
     const finished = currentRef.current;
+    if (!finished) return;
 
-    if (finished) {
-      setStrokes((previous) => [
-        ...previous,
-        finished,
-      ]);
-    }
+    const updated = [
+      ...strokesRef.current,
+      finished,
+    ];
+
+    strokesRef.current = updated;
+    onChangeRef.current(updated);
 
     currentRef.current = null;
     setCurrentStroke(null);
@@ -50,14 +66,17 @@ export default function DrawingCanvas() {
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
+        onStartShouldSetPanResponder: () =>
+          !disabledRef.current,
+
+        onMoveShouldSetPanResponder: () =>
+          !disabledRef.current,
 
         onPanResponderGrant: (event) => {
           const { locationX, locationY } =
             event.nativeEvent;
 
-          const stroke: Stroke = {
+          const stroke: DrawingStroke = {
             d: `M ${locationX} ${locationY} L ${
               locationX + 0.1
             } ${locationY + 0.1}`,
@@ -69,14 +88,13 @@ export default function DrawingCanvas() {
         },
 
         onPanResponderMove: (event) => {
+          const previous = currentRef.current;
+          if (!previous) return;
+
           const { locationX, locationY } =
             event.nativeEvent;
 
-          const previous = currentRef.current;
-
-          if (!previous) return;
-
-          const updated: Stroke = {
+          const updated: DrawingStroke = {
             ...previous,
             d: `${previous.d} L ${locationX} ${locationY}`,
           };
@@ -92,18 +110,25 @@ export default function DrawingCanvas() {
     []
   );
 
+  const updateStrokes = (next: DrawingStroke[]) => {
+    strokesRef.current = next;
+    onChangeRef.current(next);
+  };
+
   const undo = () => {
-    setStrokes((previous) => previous.slice(0, -1));
+    if (disabled) return;
+    updateStrokes(strokesRef.current.slice(0, -1));
   };
 
   const clear = () => {
-    setStrokes([]);
+    if (disabled) return;
     currentRef.current = null;
     setCurrentStroke(null);
+    updateStrokes([]);
   };
 
   const renderStroke = (
-    stroke: Stroke,
+    stroke: DrawingStroke,
     index: number
   ) => (
     <Path
@@ -140,17 +165,15 @@ export default function DrawingCanvas() {
           {strokes.map(renderStroke)}
 
           {currentStroke &&
-            renderStroke(
-              currentStroke,
-              strokes.length
-            )}
+            renderStroke(currentStroke, strokes.length)}
         </Svg>
       </View>
 
       <View style={styles.toolbar}>
         <View style={styles.tools}>
           <Pressable
-            onPress={() => changeTool('pen')}
+            disabled={disabled}
+            onPress={() => chooseTool('pen')}
             style={[
               styles.toolButton,
               tool === 'pen' && styles.activeTool,
@@ -164,7 +187,8 @@ export default function DrawingCanvas() {
           </Pressable>
 
           <Pressable
-            onPress={() => changeTool('eraser')}
+            disabled={disabled}
+            onPress={() => chooseTool('eraser')}
             style={[
               styles.toolButton,
               tool === 'eraser' && styles.activeTool,
@@ -178,6 +202,7 @@ export default function DrawingCanvas() {
           </Pressable>
 
           <Pressable
+            disabled={disabled}
             onPress={undo}
             style={styles.toolButton}
           >
@@ -189,6 +214,7 @@ export default function DrawingCanvas() {
           </Pressable>
 
           <Pressable
+            disabled={disabled}
             onPress={clear}
             style={styles.toolButton}
           >
@@ -201,9 +227,7 @@ export default function DrawingCanvas() {
         </View>
 
         <Pressable
-          onPress={() =>
-            setExpanded((previous) => !previous)
-          }
+          onPress={() => setExpanded((prev) => !prev)}
           style={styles.expandButton}
         >
           <Ionicons
