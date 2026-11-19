@@ -13,12 +13,22 @@ export type HostedShare = {
   members: string[]; // names of the friends who joined
 };
 
+// What the host's timer is doing, so friends see the same countdown (and the same breaks)
+export type SharedTimer = {
+  state: 'waiting' | 'running' | 'paused';
+  elapsedSeconds: number; // how long the host's timer has run in total
+  focusSeconds: number | null; // null = the mode's normal timer length
+  breakSeconds: number | null; // null = the mode's normal break length
+  receivedAt: number; // when we got this (Date.now()), to keep counting from while it runs
+};
+
 // A friend's mode that you joined with a code
 export type JoinedMode = {
   groupId: string;
   hostName: string;
   mode: CustomMode; // always the host's latest settings
   runningForSeconds: number | null; // how long ago the host started it (null = not running)
+  timer: SharedTimer;
 };
 
 export type ModeGroups = {
@@ -36,6 +46,10 @@ export type GroupRow = {
   host_name: string;
   members: string[];
   running_for_seconds: number | null;
+  timer_state?: 'waiting' | 'running' | 'paused';
+  timer_elapsed_seconds?: number | null;
+  timer_focus_seconds?: number | null;
+  timer_break_seconds?: number | null;
   mode: any;
 };
 
@@ -49,7 +63,7 @@ export async function fetchGroupRows(): Promise<GroupRow[]> {
 }
 
 // Sorts the rows into "modes I share" and "modes I joined"
-export function toModeGroups(rows: GroupRow[]): ModeGroups {
+export function toModeGroups(rows: GroupRow[], receivedAt: number = Date.now()): ModeGroups {
   const groups: ModeGroups = { hosted: {}, joined: [] };
 
   for (const row of rows) {
@@ -65,6 +79,13 @@ export function toModeGroups(rows: GroupRow[]): ModeGroups {
         hostName: row.host_name,
         mode: toCustomMode(row.mode),
         runningForSeconds: isRunning(row) ? row.running_for_seconds : null,
+        timer: {
+          state: row.timer_state ?? 'waiting',
+          elapsedSeconds: row.timer_elapsed_seconds ?? 0,
+          focusSeconds: row.timer_focus_seconds ?? null,
+          breakSeconds: row.timer_break_seconds ?? null,
+          receivedAt,
+        },
       });
     }
   }
@@ -77,9 +98,19 @@ function isRunning(row: GroupRow) {
 }
 
 // A short description of the rows, used to tell if anything changed since the last check.
-// (The running time goes up every second, so it only counts as "on" or "off" here.)
-export function groupsSignature(rows: GroupRow[]): string {
-  return JSON.stringify(rows.map((row) => ({ ...row, running_for_seconds: isRunning(row) })));
+// (The running time and a running timer change every second, so they're simplified here:
+// "on" or "off" for the mode, and roughly when the timer started.)
+export function groupsSignature(rows: GroupRow[], nowMs: number = Date.now()): string {
+  return JSON.stringify(
+    rows.map((row) => ({
+      ...row,
+      running_for_seconds: isRunning(row),
+      timer_elapsed_seconds:
+        row.timer_state === 'running' && row.timer_elapsed_seconds != null
+          ? Math.round((nowMs - row.timer_elapsed_seconds * 1000) / 3000)
+          : row.timer_elapsed_seconds,
+    })),
+  );
 }
 
 // Finds joined modes that the host started since we last looked.
@@ -131,6 +162,27 @@ export async function joinModeGroup(code: string): Promise<void> {
 export async function leaveModeGroup(groupId: string): Promise<void> {
   const { error } = await supabase.rpc('leave_mode_group', { p_group_id: groupId });
   if (error) throw new Error(error.message);
+}
+
+// HOST: tell friends what the timer is doing (started, paused, length or breaks changed...)
+export async function setGroupTimer(
+  modeId: string,
+  timer: {
+    state: SharedTimer['state'];
+    elapsedSeconds: number;
+    focusSeconds: number;
+    breakSeconds: number;
+  },
+): Promise<void> {
+  const { error } = await supabase.rpc('set_group_timer', {
+    p_mode_id: modeId,
+    p_state: timer.state,
+    p_elapsed_seconds: Math.max(0, Math.round(timer.elapsedSeconds)),
+    p_focus_seconds: Math.max(0, Math.round(timer.focusSeconds)),
+    p_break_seconds: Math.max(0, Math.round(timer.breakSeconds)),
+  });
+  // Don't stop the timer from working just because friends couldn't be told
+  if (error) console.warn('Could not update the shared timer:', error.message);
 }
 
 // HOST: tell friends a shared mode started (running = true) or that it ended (false).
