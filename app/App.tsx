@@ -15,6 +15,9 @@ import ProfileScreen from './src/screens/profileScreen';
 import StatsScreen from './src/screens/statsScreen';
 import PresetModeScreen, { type PresetKey } from './src/screens/presetModes';
 import AchievementsScreen from './src/achievements/achievementsScreen';
+import { AchievementsProvider, useAchievements } from './src/achievements/AchievementsProvider';
+import AchievementToast from './src/achievements/AchievementToast';
+import { BlueLightOverlay, BlueLightProvider } from './src/features/bluelight';
 import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { AuthGate } from './src/components/AuthGate';
 import { endModeSession, fetchLastUsed, startModeSession } from './src/stats/modeSessions';
@@ -66,13 +69,18 @@ function sameSettings(before: CustomModeInput, after: CustomModeInput) {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <AchievementsProvider>
+        <BlueLightProvider>
+          <AppContent />
+        </BlueLightProvider>
+      </AchievementsProvider>
     </AuthProvider>
   );
 }
 
 function AppContent() {
   const { isLoading: authLoading, session } = useAuth();
+  const { record: recordAchievement } = useAchievements();
 
   const [fontsLoaded] = useFonts({
     DynaPuff_400Regular,
@@ -568,12 +576,16 @@ function AppContent() {
                   if (editingMode) {
                     // Editing: save the changes over the existing mode
                     const updatedMode = await updateCustomMode(editingMode.id, mode);
+                    recordAchievement('modesEdited');
 
                     setCustomModes((prev) =>
                       prev.map((m) => (m.id === updatedMode.id ? updatedMode : m)),
                     );
                   } else {
                     const newMode = await createCustomMode(mode);
+                    recordAchievement('modesCreated');
+                    // Editing a preset saves it as a new mode of your own
+                    if (prefillMode) recordAchievement('presetsEdited');
 
                     setCustomModes((prev) => [...prev, newMode]);
 
@@ -617,6 +629,17 @@ function AppContent() {
               <TabBar active={tab} onChange={goToTab} />
             </View>
           )}
+
+          {/* Pops up over every screen when an achievement unlocks.
+              Tapping it opens the profile, but not in the middle of a mode (that would leave the mode). */}
+          <AchievementToast
+            onOpen={
+              screen === 'mode' || screen === 'customMode' ? undefined : () => goToTab('profile')
+            }
+          />
+
+          {/* Warm tint over everything while the blue light filter is on */}
+          <BlueLightOverlay />
         </View>
       </AuthGate>
     </SafeAreaProvider>

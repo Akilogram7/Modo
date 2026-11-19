@@ -1,6 +1,20 @@
 import { supabase } from '../../lib/supabase';
 import type { ModeSession } from './statsMath';
 
+// Other parts of the app (like achievements) can listen for modes starting and ending
+const sessionListeners = new Set<() => void>();
+
+export function onSessionChange(listener: () => void): () => void {
+  sessionListeners.add(listener);
+  return () => {
+    sessionListeners.delete(listener);
+  };
+}
+
+function tellSessionListeners() {
+  sessionListeners.forEach((listener) => listener());
+}
+
 // Call this when a mode turns ON.
 // It automatically ends whatever mode was on before, so only one is ever on.
 export async function startModeSession(modeId: string): Promise<boolean> {
@@ -10,6 +24,7 @@ export async function startModeSession(modeId: string): Promise<boolean> {
     console.warn('Could not save mode start:', error.message);
     return false;
   }
+  tellSessionListeners();
   return true;
 }
 
@@ -20,6 +35,7 @@ export async function endModeSession(): Promise<boolean> {
     console.warn('Could not save mode end:', error.message);
     return false;
   }
+  tellSessionListeners();
   return true;
 }
 
