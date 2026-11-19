@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import {
+import { useEffect, useState } from 'react'; import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
@@ -13,11 +12,41 @@ import {
 
 import { getNearbyStops } from './transitService';
 import type { TransitStop } from './transitTypes';
+import {
+  getUpcomingArrivals,
+  type BusArrival,
+} from './arrivalService';
 
-export function NearbyStops() {
+type NearbyStopsProps = {
+  onStopsFound?: (stops: TransitStop[]) => void;
+  selectedStopId?: string | null;
+  onSelectStop?: (stopId: string | null) => void;
+};
+
+export function NearbyStops({
+  onStopsFound,
+  selectedStopId: externalSelectedStopId,
+  onSelectStop,
+}: NearbyStopsProps) {
   const [stops, setStops] = useState<TransitStop[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [internalSelectedStopId, setInternalSelectedStopId] =
+    useState<string | null>(null);
+
+  const selectedStopId =
+    externalSelectedStopId !== undefined
+      ? externalSelectedStopId
+      : internalSelectedStopId;
+
+  function updateSelectedStop(stopId: string | null) {
+    if (onSelectStop) {
+      onSelectStop(stopId);
+    } else {
+      setInternalSelectedStopId(stopId);
+    }
+  }
+  const [currentTime, setCurrentTime] = useState(() => new Date());
 
   async function handleFindStops() {
     if (loading) return;
@@ -28,8 +57,9 @@ export function NearbyStops() {
     try {
       const location = await getCurrentLocation();
       const nearby = getNearbyStops(location, 1000, 10);
-
+      updateSelectedStop(null);
       setStops(nearby);
+      onStopsFound?.(nearby);
     } catch {
       setError(
         'Unable to find nearby stops. Check your location permissions.'
@@ -38,7 +68,25 @@ export function NearbyStops() {
       setLoading(false);
     }
   }
+  //clock refreshes every 30 seconds to update the arrival times for the selected stop
+  useEffect(() => {
+    if (!selectedStopId) return;
 
+    setCurrentTime(new Date());
+
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 30_000);
+
+    return () => clearInterval(interval);
+  }, [selectedStopId]);
+
+
+  function handleSelectStop(stopId: string) {
+    updateSelectedStop(
+      selectedStopId === stopId ? null : stopId
+    );
+  }
   return (
     <View style={styles.container}>
       <Text style={styles.title}>NEARBY BUS STOPS</Text>
@@ -67,16 +115,94 @@ export function NearbyStops() {
         </Text>
       )}
 
-      {stops.map((stop) => (
-        <View key={stop.id} style={styles.stopCard}>
-          <Text style={styles.stopName}>{stop.name}</Text>
 
-          <Text style={styles.stopDetails}>
-            Stop #{stop.code ?? stop.id} ·{' '}
-            {Math.round(stop.distanceMeters ?? 0)} m away
-          </Text>
-        </View>
-      ))}
+      {stops.map((stop) => {
+        const isSelected = selectedStopId === stop.id;
+
+        const arrivals: BusArrival[] =
+          isSelected && stop.agency === 'DRT'
+            ? getUpcomingArrivals(stop.id, currentTime)
+            : [];
+
+        if (isSelected) {
+          console.log('TRANSIT DEBUG:', {
+            stopId: stop.id,
+            stopName: stop.name,
+            currentTime: new Date().toISOString(),
+            arrivals,
+          });
+        }
+
+        return (
+          <View key={stop.id} style={styles.stopCard}>
+            <Pressable onPress={() => handleSelectStop(stop.id)}>
+              <Text style={styles.stopName}>
+                {stop.agency === 'GO'
+                  ? stop.transitType === 'train'
+                    ? '🚆 GO Train'
+                    : '🚌 GO Bus'
+                  : '🚌 DRT'}{' '}
+                — {stop.name}
+              </Text>
+
+              <Text style={styles.stopDetails}>
+                Stop #{stop.code ?? stop.id} ·{' '}
+                {Math.round(stop.distanceMeters ?? 0)} m away
+              </Text>
+
+              <Text style={styles.expandHint}>
+                {isSelected ? 'Hide arrivals ▲' : 'View arrivals ▼'}
+              </Text>
+            </Pressable>
+
+            {isSelected && (
+              <View style={styles.arrivalsContainer}>
+                <Text style={styles.arrivalsTitle}>
+                  Upcoming scheduled buses
+                </Text>
+
+                {arrivals.length === 0 ? (
+                  <Text style={styles.empty}>
+                    {stop.agency === 'GO'
+                      ? 'GO Transit schedules are not integrated yet.'
+                      : 'No scheduled arrivals available for this stop at the selected time.'}
+                  </Text>
+                ) : (
+                  arrivals.map((arrival, index) => (
+                    <View
+                      key={`${stop.id}-${index}`}
+                      style={styles.arrivalRow}
+                    >
+                      <View style={styles.routeBadge}>
+                        <Text style={styles.routeText}>
+                          {arrival.route}
+                        </Text>
+                      </View>
+
+                      <View style={styles.arrivalInfo}>
+                        <Text style={styles.destination}>
+                          {arrival.destination}
+                        </Text>
+
+                        <Text style={styles.scheduledTime}>
+                          Scheduled: {arrival.arrivalTime}
+                        </Text>
+                      </View>
+
+                      <Text style={styles.minutesAway}>
+                        {arrival.minutesUntilArrival === 0
+                          ? 'Due'
+                          : `${arrival.minutesUntilArrival} min`}
+                      </Text>
+                    </View>
+                  ))
+                )}
+              </View>
+            )}
+          </View>
+        );
+      })}
+
     </View>
   );
 }
@@ -127,4 +253,60 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 12,
   },
+  //arrival time styles
+  expandHint: {
+    fontSize: 12,
+    color: '#3578C8',
+    marginTop: 8,
+    fontWeight: '600',
+  },
+  arrivalsContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+  },
+  arrivalsTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#222',
+    marginBottom: 10,
+  },
+  arrivalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 10,
+  },
+  routeBadge: {
+    backgroundColor: '#3578C8',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    minWidth: 48,
+    alignItems: 'center',
+  },
+  routeText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  arrivalInfo: {
+    flex: 1,
+  },
+  destination: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#222',
+  },
+  scheduledTime: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 3,
+  },
+  minutesAway: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#3578C8',
+  },
+
 });

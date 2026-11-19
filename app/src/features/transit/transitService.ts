@@ -2,6 +2,7 @@ import type { MapLocation } from '../location/locationService';
 import type { TransitStop } from './transitTypes';
 
 import drtStops from './data/drt-stops.json';
+import goStopsData from './data/go-stops.json';
 
 const EARTH_RADIUS_METERS = 6371000;
 
@@ -22,8 +23,8 @@ function calculateDistance(
   const a =
     Math.sin(latDifference / 2) ** 2 +
     Math.cos((latitude1 * Math.PI) / 180) *
-      Math.cos((latitude2 * Math.PI) / 180) *
-      Math.sin(lonDifference / 2) ** 2;
+    Math.cos((latitude2 * Math.PI) / 180) *
+    Math.sin(lonDifference / 2) ** 2;
 
   return (
     2 *
@@ -32,15 +33,28 @@ function calculateDistance(
   );
 }
 
+
 export function getNearbyStops(
   location: MapLocation,
   radiusMeters = 1000,
   limit = 10
 ): TransitStop[] {
-  return drtStops
-    .map((stop) => ({
+  const allStops = [
+    ...drtStops.map((stop) => ({
       ...stop,
       agency: 'DRT' as const,
+      transitType: 'bus' as const,
+    })),
+    ...goStopsData.map((stop) => ({
+      ...stop,
+      agency: 'GO' as const,
+      transitType: stop.transitType as 'bus' | 'train' | 'both',
+    })),
+  ];
+
+  return allStops
+    .map((stop) => ({
+      ...stop,
       distanceMeters: calculateDistance(
         location.latitude,
         location.longitude,
@@ -48,11 +62,8 @@ export function getNearbyStops(
         stop.longitude
       ),
     }))
-    .filter(
-      (stop) => stop.distanceMeters <= radiusMeters
-    )
-    .sort(
-      (a, b) => a.distanceMeters - b.distanceMeters
-    )
+    .filter((stop) => stop.distanceMeters <= radiusMeters)
+    .sort((a, b) => a.distanceMeters - b.distanceMeters)
     .slice(0, limit);
 }
+

@@ -8,6 +8,7 @@ export type TransitStop = {
   longitude: number;
   agency: TransitAgency;
   distanceMeters?: number;
+  transitType?: 'bus' | 'train' | 'both';
 };
 
 export type BusArrival = {

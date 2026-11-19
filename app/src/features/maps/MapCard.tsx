@@ -22,6 +22,7 @@ import { TravelModeSelector } from './TravelModeSelector';
 import type { RouteResult, TravelMode } from './routeTypes';
 import { openExternalMaps } from './externalMaps';
 import { NearbyStops } from '../transit/NearbyStops';
+import type { TransitStop } from '../transit/transitTypes';
 import {
     EMPTY_MAP_SETTINGS,
     type SavedMapSettings,
@@ -54,6 +55,11 @@ export function MapCard({
         useState<TravelMode>(initialSettings.travelMode);
 
     const [route, setRoute] = useState<RouteResult | null>(null);
+    const [transitStops, setTransitStops] = useState<TransitStop[]>([]);
+
+    const [selectedTransitStopId, setSelectedTransitStopId] =
+        useState<string | null>(null);
+
     const [routeLoading, setRouteLoading] = useState(false);
     const [routeError, setRouteError] = useState('');
     const [gpsLoading, setGpsLoading] = useState(false);
@@ -305,6 +311,27 @@ export function MapCard({
                         pinColor="red"
                     />
                 )}
+                {/* marker code */}
+                {transitStops.map((stop) => (
+                    <Marker
+                        key={`${stop.agency}-${stop.id}`}
+                        coordinate={{
+                            latitude: stop.latitude,
+                            longitude: stop.longitude,
+                        }}
+                        title={stop.name}
+                        description={`${stop.agency} ${stop.transitType === 'train' ? 'Train Station' : 'Bus Stop'
+                            }`}
+                        pinColor={
+                            stop.agency === 'DRT'
+                                ? '#3578C8'
+                                : stop.transitType === 'train'
+                                    ? '#8B5CF6'
+                                    : '#16A34A'
+                        }
+                        onPress={() => setSelectedTransitStopId(stop.id)}
+                    />
+                ))}
 
                 {route && (
                     <Polyline
@@ -316,7 +343,11 @@ export function MapCard({
             </MapView>
 
             {route && <RouteDetails route={route} />}
-            <NearbyStops />
+            <NearbyStops
+                onStopsFound={setTransitStops}
+                selectedStopId={selectedTransitStopId}
+                onSelectStop={setSelectedTransitStopId}
+            />
         </View>
     );
 }
