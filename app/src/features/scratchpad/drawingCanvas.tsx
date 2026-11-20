@@ -10,6 +10,7 @@ import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 
 import { fonts } from '../../../assets/theme';
+import { useScrollLock } from '../../components/ScrollLock';
 import type {
   DrawingStroke,
   DrawingTool,
@@ -36,6 +37,8 @@ export default function DrawingCanvas({
   const onChangeRef = useRef(onChange);
   const currentRef = useRef<DrawingStroke | null>(null);
   const disabledRef = useRef(disabled);
+  // Stops the screen from scrolling while you draw
+  const { lock, unlockSoon } = useScrollLock();
 
   // Keep touch handlers up to date.
   strokesRef.current = strokes;
@@ -156,6 +159,9 @@ export default function DrawingCanvas({
           { height: expanded ? 600 : 260 },
         ]}
         {...panResponder.panHandlers}
+        onTouchStart={lock}
+        onTouchEnd={unlockSoon}
+        onTouchCancel={unlockSoon}
       >
         <Svg
           width="100%"

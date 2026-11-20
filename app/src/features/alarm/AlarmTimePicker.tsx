@@ -8,9 +8,9 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   type ScrollViewInstance,
-  type ScrollViewProps,
 } from 'react-native';
 import { fonts } from '../../../assets/theme';
+import { useScrollLock } from '../../components/ScrollLock';
 import { parseAlarmTime, toAlarmTime } from './alarmTime';
 
 // Pick a time by sliding three wheels with your finger: hour, minute and AM/PM.
@@ -27,64 +27,6 @@ type Props = {
 const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1)); // 1 to 12
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')); // 00 to 59
 const PERIODS = ['AM', 'PM'];
-
-// ---------- Scroll lock ----------
-// The wheels sit inside screens that also scroll, so a swipe that lands a little off a wheel
-// would move the whole page. While a finger is on the picker, the screen behind it holds still.
-
-const ScrollLockContext = createContext<(locked: boolean) => void>(() => {});
-const UNLOCK_MS = 300; // how long after letting go (or the wheel stopping) the screen can scroll again
-
-// Use this instead of ScrollView on any screen that has a time picker in it
-export function PickerScrollView(props: ScrollViewProps) {
-  const [locked, setLocked] = useState(false);
-  return (
-    <ScrollLockContext.Provider value={setLocked}>
-      <ScrollView {...props} scrollEnabled={!locked && props.scrollEnabled !== false} />
-    </ScrollLockContext.Provider>
-  );
-}
-
-function useScrollLock() {
-  const setLocked = useContext(ScrollLockContext);
-  const locked = useRef(false);
-  const unlockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const cancelUnlock = () => {
-    if (unlockTimer.current) clearTimeout(unlockTimer.current);
-    unlockTimer.current = null;
-  };
-
-  // Finger is on the picker (or a wheel is still spinning): hold the screen still
-  const lock = () => {
-    cancelUnlock();
-    if (!locked.current) {
-      locked.current = true;
-      setLocked(true);
-    }
-  };
-
-  // Let the screen scroll again once everything has been quiet for a moment
-  const unlockSoon = () => {
-    cancelUnlock();
-    unlockTimer.current = setTimeout(() => {
-      unlockTimer.current = null;
-      locked.current = false;
-      setLocked(false);
-    }, UNLOCK_MS);
-  };
-
-  // If the picker disappears (like tapping DONE), never leave the screen stuck
-  useEffect(
-    () => () => {
-      if (unlockTimer.current) clearTimeout(unlockTimer.current);
-      if (locked.current) setLocked(false);
-    },
-    [setLocked],
-  );
-
-  return { lock, unlockSoon };
-}
 
 export default function AlarmTimePicker({ value, onChange, textColor, accentColor }: Props) {
   const { hour, minute } = parseAlarmTime(value);
@@ -214,13 +156,16 @@ function Wheel({
   const scrollRef = useRef<ScrollViewInstance>(null);
   const scrollY = useRef((home + index) * ITEM_HEIGHT);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const placed = useRef(false);
   const dragging = useRef(false);
-  // The spot in the long list that's in the middle right now (changes while sliding, before letting go)
+
   const [middle, setMiddle] = useState(home + index);
 
-  const posAt = (y: number) => Math.max(0, Math.min(total - 1, Math.round(y / ITEM_HEIGHT)));
-  const valueOf = (pos: number) => pos % count;
+  const posAt = (y: number) =>
+    Math.max(0, Math.min(total - 1, Math.round(y / ITEM_HEIGHT)));
 
+  const valueOf = (pos: number) => pos % count;
   // Jump back to the middle copy (it looks identical, so nobody sees it) so the wheel never runs out
   const recenter = (pos: number) => {
     if (!loop || dragging.current) return;
@@ -315,7 +260,11 @@ function Wheel({
           dragging.current = false;
         }}
         onMomentumScrollEnd={onStop}
-        onLayout={() => scrollRef.current?.scrollTo({ y: (home + index) * ITEM_HEIGHT, animated: false })}
+        onLayout={() => {
+          if (placed.current) return;
+          placed.current = true;
+          scrollRef.current?.scrollTo({ y: (home + index) * ITEM_HEIGHT, animated: false });
+        }}
         testID={`wheel-${label}`}
       >
         {Array.from({ length: total }, (_, pos) => (

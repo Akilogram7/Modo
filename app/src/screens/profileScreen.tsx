@@ -21,6 +21,7 @@ import { useAuth } from '../providers/AuthProvider';
 import { supabase } from '../../lib/supabase';
 import { colors, gradientStops, gradientDirection, fonts, shadows, backgroundColors } from '../../assets/theme';
 import GuestUpgradeCard from '../components/GuestUpgradeCard';
+import { useAchievements } from '../achievements/AchievementsProvider';
 
 // Modos users can pick as their profile picture.
 // The key is what gets saved on the account, so don't rename keys once people use them.
@@ -52,9 +53,7 @@ const ACCENT = {
 };
 
 
-// Temporary frontend XP — backend will provide real values later.
-
-const PREVIEW_TOTAL_XP = 650;
+// XP comes from unlocked achievements (see src/achievements)
 
 const LEVEL_TITLES = [
   { min: 1, name: 'Modo Newbie', emoji: '🐣' },
@@ -96,8 +95,9 @@ function getLevelInfo(totalXP: number) {
 
 
 function ModoXPCard() {
+  const { totalXP } = useAchievements();
   const { level, rank, currentXP, xpNeeded, progress } =
-    getLevelInfo(PREVIEW_TOTAL_XP);
+    getLevelInfo(totalXP);
 
   return (
     <View
@@ -216,6 +216,7 @@ type Props = {
 
 export default function ProfileScreen(_props: Props) {
   const { user, signOut } = useAuth();
+  const { record: recordAchievement } = useAchievements();
   const { width } = useWindowDimensions();
 
   const savedName: string = user?.user_metadata?.display_name ?? '';
@@ -300,6 +301,9 @@ export default function ProfileScreen(_props: Props) {
       Alert.alert('Could not save your picture', error.message);
       return;
     }
+    // Achievements for changing your Modo and colour
+    if (draftAvatar !== savedAvatar) recordAchievement('avatarChanged');
+    if (draftColor !== savedColor) recordAchievement('colorChanged');
     setPickerOpen(false);
   }
 

@@ -15,6 +15,8 @@ import {
   backgroundColors,
 } from '../../assets/theme';
 import { achievements, RARITY_XP } from './achievementCatalog';
+import { progressPercent } from './achievementRules';
+import { useAchievements } from './AchievementsProvider';
 // ─────────────── ACHIEVEMENT COLOURS ───────────────
 const ACHIEVEMENT_COLORS = {
   gradientLight: '#FFEFD0',
@@ -71,20 +73,6 @@ const GRADIENT_END = { x: 0.22, y: 0.735 };
 // ─────────────── CARD DIMENSIONS ───────────────
 const BOX_GAP = 12;
 
-// ─────────────── FRONTEND PREVIEW ───────────────
-// true = show all achievements unlocked
-// false = show temporary locked/unlocked data
-
-const PREVIEW_ALL_UNLOCKED = false;
-const UNLOCKED_ACHIEVEMENTS = [1, 3, 5];
-const ACHIEVEMENT_PROGRESS: Record<number, number> = {
-  1: 100,
-  2: 60,
-  3: 100,
-  4: 25,
-  5: 100,
-};
-
 type Props = {
   onBack?: () => void;
 };
@@ -92,6 +80,8 @@ type Props = {
 export default function AchievementsScreen({ onBack }: Props) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  // Real unlocks and progress for whoever is logged in
+  const { isUnlocked, progress: allProgress, unlockedCount, totalXP } = useAchievements();
   // Two columns with slightly rectangular cards
   const boxW = (width - 32 - BOX_GAP) / 2;
   const boxH = boxW * 0.95;
@@ -111,7 +101,8 @@ export default function AchievementsScreen({ onBack }: Props) {
           styles.scroll,
           {
             paddingTop: insets.top + 20,
-            paddingBottom: insets.bottom + 30,
+            // room for the Go Back button that stays at the bottom
+            paddingBottom: insets.bottom + 110,
           },
         ]}
         showsVerticalScrollIndicator={false}
@@ -124,17 +115,17 @@ export default function AchievementsScreen({ onBack }: Props) {
         >
           ACHIEVEMENTS
         </Text>
+        <Text style={styles.summary}>
+          {unlockedCount}/{achievements.length} unlocked  ⭐ {totalXP} XP
+        </Text>
         {/* ─────────────── RARITY SECTIONS ─────────────── */}
         {RARITIES.map((rarity) => {
           const rarityAchievements = achievements.filter(
             (achievement) => achievement.rarity === rarity
           );
 
-          // Temporary preview count; backend unlock data will replace this.
-          const unlockedCount = rarityAchievements.filter(
-            (achievement) =>
-              PREVIEW_ALL_UNLOCKED ||
-              UNLOCKED_ACHIEVEMENTS.includes(achievement.id)
+          const rarityUnlockedCount = rarityAchievements.filter(
+            (achievement) => isUnlocked(achievement.id)
           ).length;
 
           return (
@@ -150,27 +141,19 @@ export default function AchievementsScreen({ onBack }: Props) {
                   </Text>
                 </View>
                 <Text style={styles.rarityCount}>
-                  {unlockedCount}/{rarityAchievements.length} Unlocked
+                  {rarityUnlockedCount}/{rarityAchievements.length} Unlocked
                 </Text>
               </View>
               {/* ACHIEVEMENT CARDS */}
               <View style={styles.grid}>
                 {rarityAchievements.map((achievement) => {
-                  const isUnlocked =
-                    PREVIEW_ALL_UNLOCKED ||
-                    UNLOCKED_ACHIEVEMENTS.includes(achievement.id);
+                  const unlocked = isUnlocked(achievement.id);
                   const isHiddenSecret =
-                    achievement.rarity === 'Secret' && !isUnlocked;
-                  const progress = isUnlocked
+                    achievement.rarity === 'Secret' && !unlocked;
+                  const progress = unlocked
                     ? 100
-                    : Math.max(
-                        0,
-                        Math.min(
-                          100,
-                          ACHIEVEMENT_PROGRESS[achievement.id] ?? 0
-                        )
-                      );
-                  const cardColor = isUnlocked
+                    : progressPercent(allProgress[achievement.id]);
+                  const cardColor = unlocked
                     ? RARITY_COLORS[achievement.rarity]
                     : LOCKED_RARITY_COLORS[achievement.rarity];
                   return (
@@ -190,7 +173,7 @@ export default function AchievementsScreen({ onBack }: Props) {
                         <Text style={styles.achievementIcon}>
                           {isHiddenSecret
                             ? '❔'
-                            : isUnlocked
+                            : unlocked
                               ? achievement.emoji
                               : '🔒'}
                         </Text>
@@ -222,7 +205,7 @@ export default function AchievementsScreen({ onBack }: Props) {
                           >
                             {isHiddenSecret
                               ? 'Secret'
-                              : isUnlocked
+                              : unlocked
                                 ? achievement.rarity
                                 : 'Locked'}
                           </Text>
@@ -234,7 +217,7 @@ export default function AchievementsScreen({ onBack }: Props) {
                           </Text>
                         </View>
                         {/* PROGRESS BAR */}
-                        {!isUnlocked && !isHiddenSecret && (
+                        {!unlocked && !isHiddenSecret && (
                           <View style={styles.progressContainer}>
                             <View style={styles.progressBar}>
                               <View
@@ -259,21 +242,25 @@ export default function AchievementsScreen({ onBack }: Props) {
             </View>
           );
         })}
-        {/* ─────────────── GO BACK BUTTON ─────────────── */}
-        <View style={styles.buttonWrap}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.button,
-              pressed && styles.pressed,
-            ]}
-            onPress={onBack}
-          >
-            <Text style={styles.buttonText}>
-              Go Back
-            </Text>
-          </Pressable>
-        </View>
       </ScrollView>
+      {/* ─────────────── GO BACK BUTTON ─────────────── */}
+      {/* Stays at the bottom of the screen, like the tab bar on the home page */}
+      <View
+        style={[styles.buttonWrap, { bottom: insets.bottom + 16 }]}
+        pointerEvents="box-none"
+      >
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.pressed,
+          ]}
+          onPress={onBack}
+        >
+          <Text style={styles.buttonText}>
+            Go Back
+          </Text>
+        </Pressable>
+      </View>
     </LinearGradient>
   );
 }
@@ -288,6 +275,13 @@ const styles = StyleSheet.create({
     lineHeight: 50,
     fontFamily: fonts.headingBold,
     color: colors.heading,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  summary: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 15,
+    color: colors.otherText,
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -413,8 +407,10 @@ const styles = StyleSheet.create({
   },
   // ─────────────── GO BACK BUTTON ───────────────
   buttonWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    marginTop: 36,
   },
   button: {
     backgroundColor: ACHIEVEMENT_COLORS.box,
