@@ -310,7 +310,7 @@ export function MapCard({
             </Pressable>
             <Pressable
                 style={[
-                    styles.routeButton,
+                    styles.outlineButton,
                     { marginTop: 10, backgroundColor: '#16A34A' },
                     (!origin || !destination || goRouteLoading) &&
                     styles.disabledButton,
