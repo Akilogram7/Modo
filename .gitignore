@@ -1,3 +1,20 @@
 # Downloaded transit datasets
 transit-data/drt-gtfs/
 transit-data/drt-gtfs.zip
+
+# Generated GO Transit schedules (stored in Supabase)
+app/src/features/transit/data/go-schedules.json
+
+# Python virtual environment
+transit-data/.venv/
+
+# Local transit importer credentials
+transit-data/.env
+
+# Downloaded transit datasets
+transit-data/go-gtfs/
+transit-data/go-gtfs.zip
+
+# Python generated files
+__pycache__/
+*.pyc

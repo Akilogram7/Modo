@@ -8,22 +8,29 @@ import { useEffect, useState } from 'react'; import {
 
 import {
   getCurrentLocation,
+  type MapLocation,
 } from '../location/locationService';
 
 import { getNearbyStops } from './transitService';
 import type { TransitStop } from './transitTypes';
+import {
+  getGoUpcomingArrivals,
+  type GoArrival,
+} from './goArrivalService';
 import {
   getUpcomingArrivals,
   type BusArrival,
 } from './arrivalService';
 
 type NearbyStopsProps = {
+  searchLocation?: MapLocation | null;
   onStopsFound?: (stops: TransitStop[]) => void;
   selectedStopId?: string | null;
   onSelectStop?: (stopId: string | null) => void;
 };
 
 export function NearbyStops({
+  searchLocation,
   onStopsFound,
   selectedStopId: externalSelectedStopId,
   onSelectStop,
@@ -47,6 +54,9 @@ export function NearbyStops({
     }
   }
   const [currentTime, setCurrentTime] = useState(() => new Date());
+  const [goArrivals, setGoArrivals] = useState<GoArrival[]>([]);
+  const [goLoading, setGoLoading] = useState(false);
+  const [goError, setGoError] = useState('');
 
   async function handleFindStops() {
     if (loading) return;
@@ -55,8 +65,8 @@ export function NearbyStops({
     setError('');
 
     try {
-      const location = await getCurrentLocation();
-      const nearby = getNearbyStops(location, 1000, 10);
+      const location = searchLocation ?? await getCurrentLocation();
+      const nearby = getNearbyStops(location, 3000, 20);
       updateSelectedStop(null);
       setStops(nearby);
       onStopsFound?.(nearby);
@@ -80,6 +90,53 @@ export function NearbyStops({
 
     return () => clearInterval(interval);
   }, [selectedStopId]);
+  //Go departure fetch 
+  useEffect(() => {
+    const selectedStop = stops.find(
+      (stop) => stop.id === selectedStopId
+    );
+
+    if (!selectedStop || selectedStop.agency !== 'GO') {
+      setGoArrivals([]);
+      setGoLoading(false);
+      setGoError('');
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadGoArrivals() {
+      setGoLoading(true);
+      setGoError('');
+
+      try {
+        const arrivals = await getGoUpcomingArrivals(
+          selectedStop!.id
+        );
+
+        if (!cancelled) {
+          setGoArrivals(arrivals);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('GO Transit arrivals error:', error);
+          setGoError('Unable to load GO Transit departures.');
+          setGoArrivals([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setGoLoading(false);
+        }
+      }
+    }
+
+    setGoArrivals([]);
+    loadGoArrivals();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedStopId, stops, currentTime]);
 
 
   function handleSelectStop(stopId: string) {
@@ -119,10 +176,12 @@ export function NearbyStops({
       {stops.map((stop) => {
         const isSelected = selectedStopId === stop.id;
 
-        const arrivals: BusArrival[] =
-          isSelected && stop.agency === 'DRT'
-            ? getUpcomingArrivals(stop.id, currentTime)
-            : [];
+        const arrivals: BusArrival[] | GoArrival[] =
+          !isSelected
+            ? []
+            : stop.agency === 'GO'
+              ? goArrivals
+              : getUpcomingArrivals(stop.id, currentTime);
 
         if (isSelected) {
           console.log('TRANSIT DEBUG:', {
@@ -158,19 +217,23 @@ export function NearbyStops({
             {isSelected && (
               <View style={styles.arrivalsContainer}>
                 <Text style={styles.arrivalsTitle}>
-                  Upcoming scheduled buses
+                  {stop.agency === 'GO'
+                    ? 'Upcoming scheduled GO departures'
+                    : 'Upcoming scheduled DRT buses'}
                 </Text>
 
-                {arrivals.length === 0 ? (
+                {stop.agency === 'GO' && goLoading ? (
+                  <ActivityIndicator color="#3578C8" />
+                ) : stop.agency === 'GO' && goError ? (
+                  <Text style={styles.error}>{goError}</Text>
+                ) : arrivals.length === 0 ? (
                   <Text style={styles.empty}>
-                    {stop.agency === 'GO'
-                      ? 'GO Transit schedules are not integrated yet.'
-                      : 'No scheduled arrivals available for this stop at the selected time.'}
+                    No scheduled departures available for this stop.
                   </Text>
                 ) : (
                   arrivals.map((arrival, index) => (
                     <View
-                      key={`${stop.id}-${index}`}
+                      key={`${stop.agency}-${stop.id}-${index}`}
                       style={styles.arrivalRow}
                     >
                       <View style={styles.routeBadge}>

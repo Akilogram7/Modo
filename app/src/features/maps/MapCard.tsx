@@ -28,6 +28,11 @@ import {
     type SavedMapSettings,
 } from './mapTypes';
 
+import {
+    planGoJourney,
+    type GoJourney,
+} from '../transit/goJourneyPlanner';
+
 const INITIAL_REGION = {
     latitude: 43.9455,
     longitude: -78.8968,
@@ -64,6 +69,10 @@ export function MapCard({
     const [routeError, setRouteError] = useState('');
     const [gpsLoading, setGpsLoading] = useState(false);
     const [mapSaving, setMapSaving] = useState(false);
+
+    const [goJourneys, setGoJourneys] = useState<GoJourney[]>([]);
+    const [goRouteLoading, setGoRouteLoading] = useState(false);
+    const [goRouteError, setGoRouteError] = useState('');
 
     function clearRoute() {
         // Ignore results from any older in-flight request.
@@ -168,6 +177,42 @@ export function MapCard({
     }
 
 
+    async function handleFindTransitRoute() {
+        if (!origin || !destination || goRouteLoading) return;
+
+        setGoRouteLoading(true);
+        setGoRouteError('');
+        setGoJourneys([]);
+
+        try {
+            const journeys = await planGoJourney(origin, destination);
+
+            console.log('GO ROUTE DEBUG:', {
+                origin: origin.label,
+                destination: destination.label,
+                journeyCount: journeys.length,
+                journeys,
+            });
+
+            setGoJourneys(journeys);
+
+            if (journeys.length === 0) {
+                setGoRouteError(
+                    'No direct GO Transit journeys found between these locations.'
+                );
+            }
+        } catch (error) {
+            console.error('GO journey planning failed:', error);
+            setGoRouteError(
+                error instanceof Error
+                    ? error.message
+                    : 'Unable to find GO Transit routes.'
+            );
+        } finally {
+            setGoRouteLoading(false);
+        }
+    }
+
     async function handleOpenExternalMaps() {
         if (!destination) return;
 
@@ -254,6 +299,89 @@ export function MapCard({
                     <Text style={styles.buttonText}>FIND ROUTE</Text>
                 )}
             </Pressable>
+            <Pressable
+                style={[
+                    styles.routeButton,
+                    { marginTop: 10, backgroundColor: '#16A34A' },
+                    (!origin || !destination || goRouteLoading) &&
+                    styles.disabledButton,
+                ]}
+                onPress={handleFindTransitRoute}
+                disabled={!origin || !destination || goRouteLoading}
+            >
+                {goRouteLoading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                    <Text style={styles.buttonText}>
+                        FIND TRANSIT ROUTE
+                    </Text>
+                )}
+            </Pressable>
+            {!!goRouteError && (
+                <Text style={styles.error}>{goRouteError}</Text>
+            )}
+
+            {goJourneys.length > 0 && (
+                <View style={{ marginTop: 16 }}>
+                    <Text style={styles.title}>GO TRANSIT JOURNEYS</Text>
+
+                    {goJourneys.map((journey) => (
+                        <View
+                            key={`${journey.route.tripId}-${journey.originStop.id}-${journey.destinationStop.id}`}
+                            style={{
+                                padding: 12,
+                                marginBottom: 10,
+                                borderRadius: 10,
+                                backgroundColor: '#F1F5F9',
+                            }}
+                        >
+                            <Text style={{ fontWeight: 'bold', fontSize: 16 }}>
+                                {journey.route.transitType === 'train' ? '🚆' : '🚌'}{' '}
+                                GO {journey.route.route}
+                            </Text>
+
+                            <Text>
+                                From: {journey.originStop.name}
+                            </Text>
+
+                            <Text>
+                                To: {journey.destinationStop.name}
+                            </Text>
+
+                            <Text>
+                                Departure:{' '}
+                                {new Date(
+                                    journey.route.scheduledDeparture
+                                ).toLocaleTimeString('en-CA', {
+                                    timeZone: 'America/Toronto',
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                })}
+                            </Text>
+
+                            <Text>
+                                Arrival:{' '}
+                                {new Date(
+                                    journey.route.scheduledArrival
+                                ).toLocaleTimeString('en-CA', {
+                                    timeZone: 'America/Toronto',
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                })}
+                            </Text>
+
+                            <Text>
+                                Transit duration: {journey.route.durationMinutes} min
+                            </Text>
+
+                            <Text>
+                                Approximate straight-line access distance:{' '}
+                                {Math.round(journey.walkingDistanceMeters)} m
+                            </Text>
+                        </View>
+                    ))}
+                </View>
+            )}
             {destination && (
                 <Pressable
                     style={styles.externalMapsButton}
@@ -344,6 +472,7 @@ export function MapCard({
 
             {route && <RouteDetails route={route} />}
             <NearbyStops
+                searchLocation={origin}
                 onStopsFound={setTransitStops}
                 selectedStopId={selectedTransitStopId}
                 onSelectStop={setSelectedTransitStopId}

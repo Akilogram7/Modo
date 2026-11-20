@@ -67,3 +67,13 @@ export function getNearbyStops(
     .slice(0, limit);
 }
 
+
+export function getNearbyGoStops(
+  location: MapLocation,
+  radiusMeters = 5000,
+  limit = 10
+): TransitStop[] {
+  return getNearbyStops(location, radiusMeters, 1000)
+    .filter((stop) => stop.agency === 'GO')
+    .slice(0, limit);
+}
