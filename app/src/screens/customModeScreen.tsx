@@ -7,7 +7,8 @@ import { CHARACTERS } from './createModeScreen';
 import { FocusTimer, FollowTimer, type TimerState } from '../features/timer';
 import type { CustomMode } from '../types/mode';
 import type { SharedTimer } from '../services/modeGroups';
-import { AlarmRow, PickerScrollView } from '../features/alarm';
+import { AlarmRow } from '../features/alarm';
+import { LockableScrollView } from '../components/ScrollLock';
 import { endModeSession } from '../stats/modeSessions';
 import { MusicSettings } from '../features/music';
 import { openSpotifyPlaylist } from '../features/music';
@@ -88,7 +89,9 @@ export default function CustomModeScreen({
       end={{ x: 0.22, y: 0.735 }}
       style={{ flex: 1 }}
     >
-      <PickerScrollView
+      <LockableScrollView
+        nestedScrollEnabled
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={[
           styles.scroll,
           {
@@ -404,7 +407,7 @@ export default function CustomModeScreen({
             </Text>
           </Pressable>
         </View>
-      </PickerScrollView>
+      </LockableScrollView>
     </LinearGradient>
 
   );

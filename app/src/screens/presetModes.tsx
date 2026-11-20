@@ -20,11 +20,12 @@ import {
   AlarmRow,
   MAX_ALARMS,
   newAlarm,
-  PickerScrollView,
   toSleepAlarms,
   type ModeAlarm,
 } from '../features/alarm';
 import { supabase } from '../../lib/supabase';
+import { LockableScrollView } from '../components/ScrollLock';
+import { BlueLightCard, useBlueLight } from '../features/bluelight';
 import { MusicSettings } from '../features/music';
 export type PresetKey = 'study' | 'sleep' | 'commute';
 import { useAuth } from '../providers/AuthProvider';
@@ -155,6 +156,8 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
   const savedSleepJson = JSON.stringify(savedSleepAlarms);
   const [sleepAlarms, setSleepAlarms] = useState<ModeAlarm[]>(savedSleepAlarms);
   const [alarmsOn, setAlarmsOn] = useState(true);
+  // Blue light filter: a warm tint on a schedule (saved on their account)
+  const blueLight = useBlueLight();
   const [justAddedAlarm, setJustAddedAlarm] = useState<string | null>(null);
   // Save changes a moment after they stop changing them
   useEffect(() => {
@@ -320,7 +323,7 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
         end={GRADIENT_END}
         style={{ flex: 1 }}
       >
-        <PickerScrollView
+        <LockableScrollView
           style={{ flex: 1 }}
           contentContainerStyle={[
             styles.scroll,
@@ -355,13 +358,16 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                           ? weatherEnabled
                           : r.label === 'ALARM SET' && mode === 'sleep'
                             ? alarmsOn
-                            : r.checked;
+                            : r.label === 'BLUE LIGHT FILTER' && mode === 'sleep'
+                              ? blueLight.settings.enabled
+                              : r.checked;
                 const canToggle =
                   (r.label === 'YOUR ROUTE' && mode === 'commute') ||
                   (r.label === 'PLAYLIST' && supportsMusic) ||
                   (r.label === 'TIMER' && mode === 'study') ||
                   (r.label === 'WEATHER' && mode === 'commute') ||
-                  (r.label === 'ALARM SET' && mode === 'sleep');
+                  (r.label === 'ALARM SET' && mode === 'sleep') ||
+                  (r.label === 'BLUE LIGHT FILTER' && mode === 'sleep');
                 const toggleDisabled =
                   (r.label === 'PLAYLIST' && (musicLoading || musicSaving)) ||
                   (r.label === 'YOUR ROUTE' && (mapLoading || mapSaving));
@@ -394,6 +400,8 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                           setWeatherEnabled((prev) => !prev);
                         } else if (r.label === 'ALARM SET' && mode === 'sleep') {
                           setAlarmsOn((prev) => !prev);
+                        } else if (r.label === 'BLUE LIGHT FILTER' && mode === 'sleep') {
+                          blueLight.update({ enabled: !blueLight.settings.enabled });
                         }
                       }}
                       style={styles.row}
@@ -415,7 +423,11 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                       {r.label}
                     </Text>
                   </Pressable>
-                    {mode === 'commute' && r.label === 'WEATHER' ? (
+                    {mode === 'sleep' && r.label === 'BLUE LIGHT FILTER' ? (
+                      blueLight.settings.enabled ? (
+                        <BlueLightCard textColor={c.text} accentColor={c.accent} />
+                      ) : null
+                    ) : mode === 'commute' && r.label === 'WEATHER' ? (
                       weatherEnabled ? <WeatherCard /> : null
                     ) : mode === 'commute' && r.label === 'YOUR ROUTE' ? (
                       mapLoading ? (
@@ -582,7 +594,7 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
             </Pressable>
           </View>
         </View>
-      </PickerScrollView>
+      </LockableScrollView>
     </LinearGradient>
     </KeyboardAvoidingView >
   );
