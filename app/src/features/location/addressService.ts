@@ -1,21 +1,18 @@
+import { supabase } from '../../../lib/supabase';
 import type { MapLocation } from './locationService';
 
-type PhotonFeature = {
+type GeocodingFeature = {
   geometry: {
     coordinates: [number, number];
   };
   properties: {
+    label?: string;
     name?: string;
-    housenumber?: string;
-    street?: string;
-    city?: string;
-    state?: string;
-    country?: string;
   };
 };
 
-type PhotonResponse = {
-  features: PhotonFeature[];
+type GeocodingResponse = {
+  features: GeocodingFeature[];
 };
 
 export async function searchAddresses(
@@ -26,42 +23,31 @@ export async function searchAddresses(
 
   if (search.length < 3) return [];
 
-  const params = new URLSearchParams({
-    q: search,
-    limit: '5',
-    lang: 'en',
-    lat: '43.9455',
-    lon: '-78.8968',
-  });
+  const { data, error } =
+    await supabase.functions.invoke<GeocodingResponse>(
+      'search-addresses',
+      {
+        body: { query: search },
+        signal,
+      },
+    );
 
-  const response = await fetch(
-    `https://photon.komoot.io/api?${params.toString()}`,
-    { signal },
-  );
-
-  if (!response.ok) {
-    throw new Error(`Photon search failed: ${response.status}`);
+  if (error) {
+    throw new Error(
+      `Address search failed: ${error.message}`,
+    );
   }
 
-  const data: PhotonResponse = await response.json();
+  if (!data || !Array.isArray(data.features)) {
+    throw new Error('Invalid address search response');
+  }
 
-  return data.features.map((feature) => {
-    const p = feature.properties;
-
-    const label = [
-      p.name,
-      [p.housenumber, p.street].filter(Boolean).join(' '),
-      p.city,
-      p.state,
-      p.country,
-    ]
-      .filter(Boolean)
-      .join(', ');
-
-    return {
-      longitude: feature.geometry.coordinates[0],
-      latitude: feature.geometry.coordinates[1],
-      label: label || 'Unknown location',
-    };
-  });
+  return data.features.map((feature) => ({
+    longitude: feature.geometry.coordinates[0],
+    latitude: feature.geometry.coordinates[1],
+    label:
+      feature.properties.label ??
+      feature.properties.name ??
+      'Unknown location',
+  }));
 }
