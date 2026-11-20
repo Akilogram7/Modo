@@ -181,7 +181,6 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
 
 // Feature search
 const [query, setQuery] = useState('');
-const [searchFocused, setSearchFocused] = useState(false);
 
 // A mode needs at least one feature, or there's nothing for it to do
 const hasFeature =
@@ -287,21 +286,13 @@ const hasFeature =
     }
   };
 
-  const addedFeatures = FEATURES.filter((f) => isEnabled(f.key));
+const q = query.trim().toLowerCase();
 
-  // search results: features that aren't added yet and match what was typed
-  const q = query.trim().toLowerCase();
-  const results = FEATURES.filter(
-    (f) => !isEnabled(f.key) && (q === '' || f.label.toLowerCase().includes(q) || f.words.includes(q)),
-  );
-  const showResults = searchFocused || q !== '';
-
-  const addFeature = (key: FeatureKey) => {
-    setEnabled(key, true);
-    setQuery('');
-    setSearchFocused(false);
-    Keyboard.dismiss();
-  };
+const filteredFeatures = FEATURES.filter(
+  (feature) =>
+    feature.label.toLowerCase().includes(q) ||
+    feature.words.toLowerCase().includes(q)
+);
 
   return (
     <LinearGradient
@@ -358,75 +349,98 @@ const hasFeature =
 
         {/* search bar */}
         <View style={[styles.panel, styles.searchBar]}>
-          <Ionicons name="search" size={22} color={textColor} />
+          <Ionicons
+            name="search"
+            size={22}
+            color={textColor}
+          />
+
           <TextInput
-            style={[styles.searchInput, { color: textColor }]}
+            style={[
+              styles.searchInput,
+              { color: textColor },
+            ]}
             value={query}
             onChangeText={setQuery}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
-            placeholder="Search features to add"
-            placeholderTextColor={dark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.4)'}
+            placeholder="Search features..."
+            placeholderTextColor={
+              dark
+                ? 'rgba(255,255,255,0.6)'
+                : 'rgba(0,0,0,0.4)'
+            }
             autoCapitalize="none"
             autoCorrect={false}
-            returnKeyType="search"
           />
-          {q !== '' && (
-            <Pressable onPress={() => setQuery('')} hitSlop={10} accessibilityLabel="Clear search">
-              <Ionicons name="close-circle" size={22} color={textColor} />
+
+          {query.length > 0 && (
+            <Pressable
+              onPress={() => setQuery('')}
+              hitSlop={10}
+              accessibilityLabel="Clear search"
+            >
+              <Ionicons
+                name="close-circle"
+                size={22}
+                color={textColor}
+              />
             </Pressable>
           )}
         </View>
 
-        {/* matching features you can add */}
-        {showResults && (
-          <View style={styles.results}>
-            {results.map((f) => (
-              <Pressable
-                key={f.key}
-                onPress={() => addFeature(f.key)}
-                style={({ pressed }) => [styles.panel, styles.resultRow, pressed && styles.pressed]}
-                accessibilityRole="button"
-                accessibilityLabel={`Add ${f.label}`}
-              >
-                <Text style={[styles.featureTitle, { color: textColor }]}>{f.label}</Text>
-                <Ionicons name="add-circle" size={28} color={buttonColor} />
-              </Pressable>
-            ))}
-            {results.length === 0 && (
-              <Text style={[styles.hint, { color: textColor }]}>
-                {q !== '' ? 'No features match that search.' : 'Every feature is already added.'}
-              </Text>
-            )}
-          </View>
-        )}
+        {/* ONE PERMANENT FEATURE LIST */}
+        <View style={[styles.panel, styles.featureList]}>
+          {filteredFeatures.map((feature, index) => {
+            const enabled = isEnabled(feature.key);
 
-        {/* features you've added */}
-        <View style={styles.added}>
-          {addedFeatures.map((f) => (
-            <View key={f.key} style={[styles.panel, styles.features]}>
-              <View style={styles.featureHeader}>
-                <Text style={[styles.featureTitle, { color: textColor }]}>{f.label}</Text>
-                <Switch
-                  value
-                  onValueChange={(on) => setEnabled(f.key, on)}
-                  trackColor={{
-                    false: '#999',
-                    true: buttonColor,
-                  }}
-                  thumbColor="#FFFFFF"
-                />
+            return (
+              <View key={feature.key}>
+                <View style={styles.featureHeader}>
+                  <Text
+                    style={[
+                      styles.featureTitle,
+                      { color: textColor },
+                    ]}
+                  >
+                    {feature.label}
+                  </Text>
+
+                  <Switch
+                    value={enabled}
+                    onValueChange={(on) =>
+                      setEnabled(feature.key, on)
+                    }
+                    trackColor={{
+                      false: '#999999',
+                      true: buttonColor,
+                    }}
+                    thumbColor="#FFFFFF"
+                  />
+                </View>
+
+                {enabled && (
+                  <View style={styles.featureSettings}>
+                    {renderSettings(feature.key)}
+                  </View>
+                )}
+
+                {index < filteredFeatures.length - 1 && (
+                  <View style={styles.featureDivider} />
+                )}
               </View>
-              {renderSettings(f.key)}
-            </View>
-          ))}
-        </View>
+            );
+          })}
 
-        {addedFeatures.length === 0 && !showResults && (
-          <Text style={[styles.hint, { color: textColor }]}>
-            Tap the search bar to add features to this mode.
-          </Text>
-        )}
+          {filteredFeatures.length === 0 && (
+            <Text
+              style={[
+                styles.hint,
+                { color: textColor },
+              ]}
+            >
+              No matching features.
+            </Text>
+          )}
+        </View>
 
         <View style={styles.buttons}>
           <Pressable
@@ -522,4 +536,20 @@ const styles = StyleSheet.create({
   button: { borderRadius: 30, paddingVertical: 12, paddingHorizontal: 40, ...shadows.raised },
   buttonText: { color: '#fff', fontSize: 24, fontFamily: fonts.headingBold },
   pressed: { transform: [{ scale: 0.97 }], opacity: 0.9 },
+
+  featureList: {
+    marginTop: 16,
+    padding: 20,
+    gap: 12,
+  },
+
+  featureSettings: {
+    marginTop: 12,
+  },
+
+  featureDivider: {
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.12)',
+    marginVertical: 16,
+  },
 });
