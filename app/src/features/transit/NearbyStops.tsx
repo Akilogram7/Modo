@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react'; import {
+import { useEffect, useState } from 'react';
+import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
+import { colors, fonts } from '../../../assets/theme';
 import {
   getCurrentLocation,
   type MapLocation,
@@ -21,6 +24,9 @@ import {
   getUpcomingArrivals,
   type BusArrival,
 } from './arrivalService';
+
+// The Baloo font sits a little high in its line on iPhone, so the text is nudged down to the middle
+const TEXT_NUDGE = Platform.OS === 'ios' ? 3 : 0;
 
 type NearbyStopsProps = {
   searchLocation?: MapLocation | null;
@@ -149,12 +155,16 @@ export function NearbyStops({
       <Text style={styles.title}>NEARBY BUS STOPS</Text>
 
       <Pressable
-        style={styles.button}
+        style={({ pressed }) => [
+          styles.button,
+          loading && styles.disabledButton,
+          pressed && styles.pressed,
+        ]}
         onPress={handleFindStops}
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator color="#FFFFFF" />
+          <ActivityIndicator color={colors.buttonText} />
         ) : (
           <Text style={styles.buttonText}>
             FIND NEARBY STOPS
@@ -283,15 +293,31 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: '#222',
   },
+  // same brown pill as the buttons on the map card
   button: {
-    backgroundColor: '#3578C8',
-    borderRadius: 10,
-    padding: 14,
+    backgroundColor: colors.otherText,
+    borderRadius: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  pressed: {
+    transform: [{ scale: 0.97 }],
   },
   buttonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+    color: colors.buttonText,
+    fontFamily: fonts.headingBold,
+    fontSize: 18,
+    lineHeight: 24,
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false, // Android only: removes extra space above and below the text
+    transform: [{ translateY: TEXT_NUDGE }],
   },
   stopCard: {
     padding: 12,

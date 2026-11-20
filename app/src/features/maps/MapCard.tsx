@@ -308,18 +308,21 @@ export function MapCard({
                     <Text style={styles.buttonText}>FIND ROUTE</Text>
                 )}
             </Pressable>
+
+            {/* Find transit route: same brown as the other buttons, faded until both places are entered */}
             <Pressable
-                style={[
-                    styles.outlineButton,
-                    { marginTop: 10, backgroundColor: '#16A34A' },
+                style={({ pressed }) => [
+                    styles.button,
+                    { backgroundColor: accentColor },
                     (!origin || !destination || goRouteLoading) &&
                     styles.disabledButton,
+                    pressed && styles.pressed,
                 ]}
                 onPress={handleFindTransitRoute}
                 disabled={!origin || !destination || goRouteLoading}
             >
                 {goRouteLoading ? (
-                    <ActivityIndicator color="#FFFFFF" />
+                    <ActivityIndicator color={colors.buttonText} />
                 ) : (
                     <Text style={styles.buttonText}>
                         FIND TRANSIT ROUTE
