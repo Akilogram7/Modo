@@ -90,6 +90,8 @@ export default function CustomModeScreen({
       style={{ flex: 1 }}
     >
       <LockableScrollView
+        nestedScrollEnabled
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={[
           styles.scroll,
           {
