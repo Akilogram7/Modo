@@ -22,7 +22,7 @@ import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { AuthGate } from './src/components/AuthGate';
 import { endModeSession, fetchLastUsed, startModeSession } from './src/stats/modeSessions';
 import CustomModeScreen from './src/screens/customModeScreen';
-import ModesScreen from './src/screens/modesScreen';
+import ModesScreen, { presetStarter } from './src/screens/modesScreen';
 import type { CustomMode, CustomModeInput } from './src/types/mode';
 import {
   createCustomMode,
@@ -99,7 +99,7 @@ function AppContent() {
   >('home');
 
   const [preset, setPreset] = useState<PresetKey>('study');
-  const [createFrom, setCreateFrom] = useState<'home' | 'mode' | 'modes'>('home');
+  const [createFrom, setCreateFrom] = useState<'home' | 'mode' | 'customMode' | 'modes'>('home');
   // The mode being edited on the create mode screen (null = making a new one)
   const [editingMode, setEditingMode] = useState<CustomMode | null>(null);
   // Settings to start a NEW mode with (used when you edit a preset from the modes screen)
@@ -441,7 +441,7 @@ function AppContent() {
   // Pass a mode as `editing` to edit it instead of making a new one.
   // Pass `prefill` to make a NEW mode that starts with those settings (editing a preset).
   async function openCreateMode(
-    from: 'home' | 'mode' | 'modes',
+    from: 'home' | 'mode' | 'customMode' | 'modes',
     editing: CustomMode | null = null,
     prefill: CustomModeInput | null = null,
   ) {
@@ -502,7 +502,10 @@ function AppContent() {
           {screen === 'mode' && (
             <PresetModeScreen
               mode={preset}
-              onChangeSettings={() => openCreateMode('mode')}
+              // Start the edit screen with this preset's settings (saves as your own mode)
+              onChangeSettings={(current) =>
+                openCreateMode('mode', null, { ...presetStarter(preset), ...current })
+              }
               onEnd={() => {
                 tellFriendsModeEnded();
                 setTab('home');
@@ -514,6 +517,8 @@ function AppContent() {
           {screen === 'customMode' && activeCustomMode && (
             <CustomModeScreen
               mode={followedMode?.mode ?? activeCustomMode}
+              // Edit this mode, then come back to it (friends following someone else's mode can't)
+              onChangeSettings={following ? undefined : () => openCreateMode('customMode', activeCustomMode)}
               hostName={following?.hostName}
               sharedTimer={followedMode?.timer ?? null}
               onTimerChange={
@@ -581,6 +586,13 @@ function AppContent() {
                     setCustomModes((prev) =>
                       prev.map((m) => (m.id === updatedMode.id ? updatedMode : m)),
                     );
+
+                    // Edited from inside the running mode: go back to it with the new settings
+                    if (createFrom === 'customMode') {
+                      setActiveCustomMode(updatedMode);
+                      setScreen('customMode');
+                      return;
+                    }
                   } else {
                     const newMode = await createCustomMode(mode);
                     recordAchievement('modesCreated');

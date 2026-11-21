@@ -25,6 +25,7 @@ import {
 } from '../features/alarm';
 import { supabase } from '../../lib/supabase';
 import { LockableScrollView } from '../components/ScrollLock';
+import type { CustomModeInput } from '../types/mode';
 import { BlueLightCard, useBlueLight } from '../features/bluelight';
 import { MusicSettings } from '../features/music';
 export type PresetKey = 'study' | 'sleep' | 'commute';
@@ -133,7 +134,8 @@ function darken(hex: string, amount: number) {
 }
 type Props = {
   mode: PresetKey;
-  onChangeSettings?: () => void;
+  // Gets what this mode is set to right now, so the edit screen starts with it
+  onChangeSettings?: (current: Partial<CustomModeInput>) => void;
   onEnd?: () => void;
 };
 export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Props) {
@@ -579,7 +581,24 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
               )}
             <Pressable
               style={({ pressed }) => [styles.button, { backgroundColor: c.accent }, pressed && styles.pressed]}
-              onPress={onChangeSettings}
+              onPress={() =>
+                onChangeSettings?.({
+                  timerEnabled: mode === 'study' && timerEnabled,
+                  ...(supportsMusic && {
+                    musicEnabled: music.enabled,
+                    playlistUrl: music.playlistUrl.trim() || null,
+                    playlistName: music.playlistName.trim() || null,
+                  }),
+                  weatherEnabled: mode === 'commute' && weatherEnabled,
+                  alarmEnabled: mode === 'sleep' && alarmsOn && sleepAlarms.length > 0,
+                  alarms: mode === 'sleep' && alarmsOn ? sleepAlarms : [],
+                  ...(mode === 'commute' && {
+                    mapEnabled: mapSettings.enabled,
+                    mapDestination: mapSettings.destination,
+                    mapTravelMode: mapSettings.travelMode,
+                  }),
+                })
+              }
             >
               <Text style={[styles.buttonText, { color: c.text }]}>CHANGE SETTINGS</Text>
             </Pressable>

@@ -25,6 +25,8 @@ type Props = {
   sharedTimer?: SharedTimer | null;
   // Set when this is YOUR shared mode: tells friends what your timer is doing
   onTimerChange?: (state: TimerState) => void;
+  // Opens the edit screen for this mode (not shown to friends following someone else's mode)
+  onChangeSettings?: () => void;
 };
 
 function lighten(hex: string, amount: number) {
@@ -44,6 +46,7 @@ export default function CustomModeScreen({
   hostName,
   sharedTimer = null,
   onTimerChange,
+  onChangeSettings,
 }: Props) {
   const following = hostName !== undefined;
   const insets = useSafeAreaInsets();
@@ -397,6 +400,17 @@ export default function CustomModeScreen({
               </Pressable>
               {scratchpadEnabled && <Scratchpad modeId={mode.id} />}
             </>
+          )}
+
+          {/* edit this mode (only the owner can) */}
+          {onChangeSettings && !following && (
+            <Pressable
+              style={[styles.button, { backgroundColor: accent }]}
+              onPress={onChangeSettings}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.buttonText, { color: textColor }]}>CHANGE SETTINGS</Text>
+            </Pressable>
           )}
 
           {/* end mode button */}

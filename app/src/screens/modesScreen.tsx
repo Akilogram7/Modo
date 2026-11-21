@@ -110,6 +110,12 @@ function starterFor(preset: (typeof PRESETS)[number]): CustomModeInput {
   };
 }
 
+// Same thing, looked up by the preset's id ('study', 'sleep' or 'commute')
+export function presetStarter(id: PresetKey): CustomModeInput {
+  const preset = PRESETS.find((p) => p.id === id) ?? PRESETS[0];
+  return starterFor(preset);
+}
+
 type Props = {
   customModes: CustomMode[];
   onPresetPress: (mode: PresetKey) => void;
