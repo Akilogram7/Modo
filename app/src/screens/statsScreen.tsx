@@ -40,6 +40,7 @@ import {
 } from '../stats/statsMath';
 import { CHARACTERS } from './createModeScreen';
 import type { CustomMode } from '../types/mode';
+import { FloatingCloud } from '../components/AuthBackground';
 
 const CHART_HEIGHT = 140;
 
@@ -101,7 +102,11 @@ export default function StatsScreen({ customModes = [] }: Props) {
       end={gradientDirection.end}
       style={styles.bg}
     >
-      {/* Background */}
+      {/* Animated background */}
+      <FloatingCloud top={0.75} size={1.5} opacity={0.50} duration={20000} startAt={0.2} from="left" />
+      <FloatingCloud top={0.40} size={1.5} opacity={0.10} duration={25000} startAt={0.1} from="left" />
+      <FloatingCloud top={0.20} size={2.0} opacity={0.50} duration={20000} startAt={0.3} from="right" />
+
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <Text style={styles.title}>Your Stats</Text>

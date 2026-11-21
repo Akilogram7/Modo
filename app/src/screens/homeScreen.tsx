@@ -30,7 +30,6 @@ type Props = {
   onModePress?: (mode: 'study' | 'sleep' | 'commute') => void;
   onCreateMode?: () => void;
   onAchievements?: () => void;
-  onSettings?: () => void;
   customModes?: CustomMode[];
   onCustomModePress?: (mode: CustomMode) => void;
   // when each mode was last started: { modeId: time in milliseconds }
@@ -64,7 +63,6 @@ export default function HomeScreen({
   onModePress,
   onCreateMode,
   onAchievements,
-  onSettings,
   customModes = [],
   onCustomModePress,
   lastUsed = {},
@@ -179,24 +177,6 @@ export default function HomeScreen({
                 What are we{'\n'}in the mode for?
               </Text>
             </View>
-
-            {/* Settings button */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.gear,
-                pressed && styles.pressed,
-              ]}
-              onPress={onSettings}
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel="Settings"
-            >
-              <Ionicons
-                name="settings-sharp"
-                size={24}
-                color="#171717"
-              />
-            </Pressable>
           </View>
 
           <Text style={styles.heading}>Recent Modes</Text>
@@ -324,23 +304,6 @@ const styles = StyleSheet.create({
     color: colors.heading,
   },
 
-  gear: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 4,
-  },
-
   title: {
     fontSize: 32,
     fontFamily: fonts.headingBold,
@@ -453,4 +416,3 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
 });
-
