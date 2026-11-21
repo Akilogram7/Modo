@@ -168,7 +168,7 @@ export function NearbyStops({
 
       {!loading && !error && stops.length === 0 && (
         <Text style={styles.empty}>
-          Find DRT bus stops near your current location.
+          Find DRT or GO bus stops near your current location.
         </Text>
       )}
 

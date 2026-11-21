@@ -3,7 +3,8 @@ import csv
 from datetime import datetime, timedelta
 from io import StringIO
 from pathlib import Path
-
+import os
+from datetime import date
 import psycopg2
 
 ROOT = Path(__file__).resolve().parent
@@ -28,11 +29,19 @@ TABLES = {
 
 
 def database_url():
-    for line in (ROOT / ".env").read_text().splitlines():
-        if line.strip().startswith("DATABASE_URL="):
-            return line.split("=", 1)[1].strip().strip('"').strip("'")
-    raise RuntimeError("DATABASE_URL not found")
+    url = os.environ.get("DATABASE_URL")
 
+    if url:
+        return url
+
+    env_file = ROOT / ".env"
+
+    if env_file.exists():
+        for line in env_file.read_text().splitlines():
+            if line.strip().startswith("DATABASE_URL="):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+
+    raise RuntimeError("DATABASE_URL not found")
 
 def read_csv(filename):
     with (GTFS / filename).open(
@@ -175,21 +184,33 @@ def main():
 
             print("Validating data...")
 
-            expected = {
-                "drt_routes": 38,
-                "drt_trips": 4120,
-                "drt_stop_times": 161531,
+            minimum_counts = {
+                "drt_routes": 1,
+                "drt_trips": 1,
+                "drt_stop_times": 1,
             }
 
-            for table, expected_count in expected.items():
-                if counts[table] != expected_count:
+            for table, minimum in minimum_counts.items():
+                if counts[table] < minimum:
                     raise RuntimeError(
-                        f"{table}: expected {expected_count}, "
+                        f"{table}: expected at least {minimum} rows, "
                         f"found {counts[table]}"
                     )
 
             if counts["drt_service_dates"] == 0:
                 raise RuntimeError("No DRT service dates generated")
+
+            #database protection from outdated timings
+            latest_service_date = max(
+                service_date
+                for _, service_date in service_dates()
+            )
+
+            if date.fromisoformat(latest_service_date) < date.today() + timedelta(days=7):
+                raise RuntimeError(
+                    "DRT GTFS data expires within 7 days. "
+                    "Refusing to replace the existing schedule."
+                )
 
             checks = {
                 "missing routes": """
@@ -237,6 +258,23 @@ def main():
 
             print("Validation passed.")
             print("Replacing DRT schedule records...")
+            for table in TABLES:
+                cursor.execute(f"SELECT COUNT(*) FROM stage_{table}")
+                staged_count = cursor.fetchone()[0]
+
+                cursor.execute(f"SELECT COUNT(*) FROM public.{table}")
+                existing_count = cursor.fetchone()[0]
+
+                if staged_count == 0:
+                    raise RuntimeError(
+                        f"{table}: staged data is empty"
+                    )
+
+                if existing_count > 0 and staged_count < existing_count * 0.5:
+                    raise RuntimeError(
+                        f"{table}: staged data is less than 50% "
+                        "of existing data. Refusing replacement."
+                    )
 
             # Transactional: a failure rolls back the replacement.
             # Only DRT tables are modified.
