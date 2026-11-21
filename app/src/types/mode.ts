@@ -30,6 +30,9 @@ export type CustomModeInput = {
 
   // Scratchpad
   scratchpadEnabled: boolean;
+
+  // Do Not Disturb on the phone while the mode is on
+  dndEnabled: boolean;
 };
 
 export type CustomMode = CustomModeInput & { id: string };
