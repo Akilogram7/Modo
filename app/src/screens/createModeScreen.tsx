@@ -20,6 +20,7 @@ import type { CustomModeInput } from '../types/mode';
 import { MusicSettings } from '../features/music';
 import { AlarmListEditor, newAlarm, type ModeAlarm } from '../features/alarm';
 import { LockableScrollView } from '../components/ScrollLock';
+import { DndCard } from '../features/dnd';
 import { MapCard } from '../features/maps/MapCard';
 import {
   EMPTY_MAP_SETTINGS,
@@ -46,13 +47,14 @@ const COLUMNS = 5;
 
 // Every feature the search bar can add. `words` are extra search terms,
 // so typing "spotify" finds Music and "notes" finds Scratchpad.
-type FeatureKey = 'timer' | 'alarm' | 'music' | 'weather' | 'maps' | 'scratchpad';
+type FeatureKey = 'timer' | 'alarm' | 'music' | 'weather' | 'maps' | 'dnd' | 'scratchpad';
 const FEATURES: { key: FeatureKey; label: string; words: string }[] = [
   { key: 'timer', label: 'FOCUS TIMER', words: 'timer focus pomodoro study break' },
   { key: 'alarm', label: 'ALARM', words: 'alarm wake up clock' },
   { key: 'music', label: 'MUSIC', words: 'music spotify playlist songs' },
   { key: 'weather', label: 'WEATHER', words: 'weather forecast rain temperature' },
   { key: 'maps', label: 'MAPS', words: 'maps route directions drive walk commute' },
+  { key: 'dnd', label: 'DO NOT DISTURB', words: 'do not disturb dnd focus silent quiet notifications' },
   { key: 'scratchpad', label: 'SCRATCHPAD', words: 'scratchpad notes write' },
 ];
 
@@ -179,6 +181,9 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
     initialMode?.scratchpadEnabled ?? false
   );
 
+  // Do Not Disturb
+  const [dndEnabled, setDndEnabled] = useState(initialMode?.dndEnabled ?? false);
+
 // Feature search
 const [query, setQuery] = useState('');
 
@@ -189,7 +194,8 @@ const hasFeature =
   weatherEnabled ||
   (alarmEnabled && alarms.length > 0) ||
   mapSettings.enabled ||
-  scratchpadEnabled;
+  scratchpadEnabled ||
+  dndEnabled;
 
   // text and buttons follow the chosen background colour
   const dark = isDark(color);
@@ -205,6 +211,7 @@ const hasFeature =
       case 'weather': return weatherEnabled;
       case 'maps': return mapSettings.enabled;
       case 'scratchpad': return scratchpadEnabled;
+      case 'dnd': return dndEnabled;
     }
   };
 
@@ -229,6 +236,9 @@ const hasFeature =
         break;
       case 'scratchpad':
         setScratchpadEnabled(on);
+        break;
+      case 'dnd':
+        setDndEnabled(on);
         break;
     }
   };
@@ -280,6 +290,8 @@ const hasFeature =
             }}
           />
         );
+      case 'dnd':
+        return <DndCard textColor={textColor} accentColor={buttonColor} />;
       // weather and scratchpad have no settings here
       default:
         return null;
@@ -459,7 +471,7 @@ const filteredFeatures = FEATURES.filter(
               if (!hasFeature) {
                 Alert.alert(
                   'Pick at least one feature',
-                  'Turn on a timer, music, weather, an alarm, a map or the scratchpad so your mode has something to do.',
+                  'Turn on a timer, music, weather, an alarm, a map, Do Not Disturb or the scratchpad so your mode has something to do.',
                 );
                 return;
               }
@@ -482,6 +494,7 @@ const filteredFeatures = FEATURES.filter(
                 mapDestination: mapSettings.destination,
                 mapTravelMode: mapSettings.travelMode,
                 scratchpadEnabled,
+                dndEnabled,
               });
             }}
           >

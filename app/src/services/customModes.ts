@@ -52,6 +52,9 @@ function toModeColumns(mode: NewCustomMode) {
             scratchpad: {
                 enabled: mode.scratchpadEnabled,
             },
+            dnd: {
+                enabled: mode.dndEnabled,
+            },
         },
 
     };
@@ -86,6 +89,8 @@ export function toCustomMode(row: any): CustomMode {
 
         scratchpadEnabled:
             row.feature_settings?.scratchpad?.enabled ?? false,
+
+        dndEnabled: row.feature_settings?.dnd?.enabled ?? false,
     };
 }
 
