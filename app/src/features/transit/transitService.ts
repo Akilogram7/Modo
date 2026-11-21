@@ -51,7 +51,6 @@ export function getNearbyStops(
       transitType: stop.transitType as 'bus' | 'train' | 'both',
     })),
   ];
-
   return allStops
     .map((stop) => ({
       ...stop,
@@ -67,6 +66,15 @@ export function getNearbyStops(
     .slice(0, limit);
 }
 
+export function getNearbyDrtStops(
+  location: MapLocation,
+  radiusMeters = 1000,
+  limit = 10
+): TransitStop[] {
+  return getNearbyStops(location, radiusMeters, 1000)
+    .filter((stop) => stop.agency === 'DRT')
+    .slice(0, limit);
+}
 
 export function getNearbyGoStops(
   location: MapLocation,

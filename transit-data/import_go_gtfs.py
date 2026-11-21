@@ -2,7 +2,7 @@ import csv
 import os
 from io import StringIO
 from pathlib import Path
-
+from datetime import date, timedelta
 import psycopg2
 
 ROOT = Path(__file__).resolve().parent
@@ -37,11 +37,20 @@ TABLES = {
 
 
 def database_url():
-    for line in (ROOT / ".env").read_text().splitlines():
-        line = line.strip()
-        if line.startswith("DATABASE_URL="):
-            return line.split("=", 1)[1].strip().strip('"').strip("'")
-    raise RuntimeError("DATABASE_URL not found in transit-data/.env")
+    url = os.environ.get("DATABASE_URL")
+
+    if url:
+        return url
+
+    env_file = ROOT / ".env"
+
+    if env_file.exists():
+        for line in env_file.read_text().splitlines():
+            line = line.strip()
+            if line.startswith("DATABASE_URL="):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+
+    raise RuntimeError("DATABASE_URL not found")
 
 
 def read_csv(filename):
@@ -158,6 +167,28 @@ def main():
 
             print("Validating staged data...")
 
+            for table in TABLES:
+                cursor.execute(f"SELECT COUNT(*) FROM stage_{table}")
+                count = cursor.fetchone()[0]
+
+                if count == 0:
+                    raise RuntimeError(
+                        f"{table} is empty. Refusing to replace live data."
+                    )
+
+            cursor.execute("""
+                SELECT MAX(service_date)
+                FROM stage_go_service_dates
+            """)
+
+            latest_date = cursor.fetchone()[0]
+
+            if latest_date is None or latest_date < date.today() + timedelta(days=7):
+                raise RuntimeError(
+                    "GO schedule does not cover the next 7 days. "
+                    "Refusing to replace live data."
+                )
+
             cursor.execute("""
                 SELECT COUNT(*)
                 FROM stage_go_trips t
@@ -184,7 +215,7 @@ def main():
                 WHERE d.service_id IS NULL
             """)
             missing_service_dates = cursor.fetchone()[0]
-                    
+
             cursor.execute("""
                 SELECT COUNT(*) - COUNT(DISTINCT trip_id)
                 FROM stage_go_trips
@@ -203,7 +234,7 @@ def main():
                     f"{duplicate_trips} duplicate trips, "
                     f"{duplicate_stop_times} duplicate stop times"
                 )
-            
+
             if missing_routes or missing_trips or missing_service_dates:
                 raise RuntimeError(
                     "GTFS validation failed: "
@@ -214,6 +245,24 @@ def main():
 
             print("Validation passed.")
             print("Replacing existing GO schedule records...")
+
+            for table in TABLES:
+                cursor.execute(f"SELECT COUNT(*) FROM stage_{table}")
+                staged_count = cursor.fetchone()[0]
+
+                cursor.execute(f"SELECT COUNT(*) FROM public.{table}")
+                existing_count = cursor.fetchone()[0]
+
+                if staged_count == 0:
+                    raise RuntimeError(
+                        f"{table}: staged data is empty"
+                    )
+
+                if existing_count > 0 and staged_count < existing_count * 0.5:
+                    raise RuntimeError(
+                        f"{table}: staged data is less than 50% "
+                        "of existing data. Refusing replacement."
+                    )
 
             # Only GO tables are affected.
             # TRUNCATE is transactional in PostgreSQL.

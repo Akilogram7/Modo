@@ -1,0 +1,47 @@
+name: Update Transit Schedules
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Monday 11:00 UTC
+    # 6 AM EST / 7 AM EDT
+    - cron: "0 11 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: transit-schedule-updates
+  cancel-in-progress: false
+
+jobs:
+  update-schedules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install psycopg2-binary
+
+      - name: Download GTFS schedules
+        run: python transit-data/download_gtfs.py
+
+      - name: Import DRT schedules
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: python transit-data/import_drt_gtfs.py
+
+      - name: Import GO Transit schedules
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: python transit-data/import_go_gtfs.py

@@ -33,6 +33,12 @@ import {
     planGoJourney,
     type GoJourney,
 } from '../transit/goJourneyPlanner';
+
+import {
+    planDrtJourney,
+    type DrtJourney,
+} from '../transit/drtJourneyPlanner';
+
 // The Baloo font sits a little high in its line on iPhone, so the text is nudged down to the middle
 const TEXT_NUDGE = Platform.OS === 'ios' ? 3 : 0;
 
@@ -76,6 +82,7 @@ export function MapCard({
     const [mapSaving, setMapSaving] = useState(false);
 
     const [goJourneys, setGoJourneys] = useState<GoJourney[]>([]);
+    const [drtJourneys, setDrtJourneys] = useState<DrtJourney[]>([]);
     const [goRouteLoading, setGoRouteLoading] = useState(false);
     const [goRouteError, setGoRouteError] = useState('');
 
@@ -85,6 +92,10 @@ export function MapCard({
         setRoute(null);
         setRouteError('');
         setRouteLoading(false);
+        setGoJourneys([]);
+        setDrtJourneys([]);
+        setGoRouteError('');
+        setGoRouteLoading(false);
     }
 
     function handleOriginChange(location: MapLocation) {
@@ -182,41 +193,66 @@ export function MapCard({
     }
 
 
+
     async function handleFindTransitRoute() {
         if (!origin || !destination || goRouteLoading) return;
+
+        const currentRequest = ++requestId.current;
 
         setGoRouteLoading(true);
         setGoRouteError('');
         setGoJourneys([]);
+        setDrtJourneys([]);
 
         try {
-            const journeys = await planGoJourney(origin, destination);
+            const results = await Promise.allSettled([
+                planGoJourney(origin, destination),
+                planDrtJourney(origin, destination),
+            ]);
 
-            console.log('GO ROUTE DEBUG:', {
-                origin: origin.label,
-                destination: destination.label,
-                journeyCount: journeys.length,
-                journeys,
-            });
+            if (currentRequest !== requestId.current) return;
 
-            setGoJourneys(journeys);
+            const [goResult, drtResult] = results;
 
-            if (journeys.length === 0) {
+            const go = goResult.status === 'fulfilled'
+                ? goResult.value
+                : [];
+
+            const drt = drtResult.status === 'fulfilled'
+                ? drtResult.value
+                : [];
+
+            setGoJourneys(go);
+            setDrtJourneys(drt);
+
+            if (goResult.status === 'rejected') {
+                console.error('GO journey planning failed:', goResult.reason);
+            }
+
+            if (drtResult.status === 'rejected') {
+                console.error('DRT journey planning failed:', drtResult.reason);
+            }
+
+            if (go.length === 0 && drt.length === 0) {
                 setGoRouteError(
-                    'No direct GO Transit journeys found between these locations.'
+                    goResult.status === 'rejected' ||
+                        drtResult.status === 'rejected'
+                        ? 'Unable to complete all transit searches. Please try again.'
+                        : 'No scheduled DRT or direct GO journeys found between these locations.'
                 );
             }
         } catch (error) {
-            console.error('GO journey planning failed:', error);
-            setGoRouteError(
-                error instanceof Error
-                    ? error.message
-                    : 'Unable to find GO Transit routes.'
-            );
+            if (currentRequest !== requestId.current) return;
+
+            console.error('Transit journey planning failed:', error);
+            setGoRouteError('Unable to find transit journeys.');
         } finally {
-            setGoRouteLoading(false);
+            if (currentRequest === requestId.current) {
+                setGoRouteLoading(false);
+            }
         }
     }
+
 
     async function handleOpenExternalMaps() {
         if (!destination) return;
@@ -394,6 +430,95 @@ export function MapCard({
                     ))}
                 </View>
             )}
+
+            {drtJourneys.length > 0 && (
+                <View style={{ marginTop: 16 }}>
+                    <Text style={styles.title}>DRT JOURNEYS</Text>
+
+                    {drtJourneys.map((journey) => (
+                        <View
+                            key={`${journey.route.firstTripId}-${journey.route.secondTripId ?? 'direct'}-${journey.originStop.id}-${journey.destinationStop.id}`}
+                            style={{
+                                padding: 12,
+                                marginBottom: 10,
+                                borderRadius: 10,
+                                backgroundColor: '#EFF6FF',
+                            }}
+                        >
+                            <Text style={{ fontWeight: 'bold', fontSize: 16 }}>
+                                🚌 DRT {journey.route.firstRoute}
+                                {journey.route.secondRoute
+                                    ? ` → ${journey.route.secondRoute}`
+                                    : ''}
+                            </Text>
+
+                            <Text>
+                                {journey.route.transferCount === 0
+                                    ? 'Direct bus'
+                                    : '1 transfer'}
+                            </Text>
+
+                            <Text>From: {journey.originStop.name}</Text>
+                            <Text>To: {journey.destinationStop.name}</Text>
+
+                            <Text>
+                                Departure:{' '}
+                                {new Date(journey.route.departureTime).toLocaleTimeString(
+                                    'en-CA',
+                                    {
+                                        timeZone: 'America/Toronto',
+                                        hour: 'numeric',
+                                        minute: '2-digit',
+                                    }
+                                )}
+                            </Text>
+
+                            {journey.route.transferStopId && (
+                                <>
+                                    <Text>
+                                        Transfer at stop: {journey.route.transferStopId}
+                                    </Text>
+
+                                    {journey.route.transferDepartureTime && (
+                                        <Text>
+                                            Second bus departure:{' '}
+                                            {new Date(
+                                                journey.route.transferDepartureTime
+                                            ).toLocaleTimeString('en-CA', {
+                                                timeZone: 'America/Toronto',
+                                                hour: 'numeric',
+                                                minute: '2-digit',
+                                            })}
+                                        </Text>
+                                    )}
+                                </>
+                            )}
+
+                            <Text>
+                                Arrival:{' '}
+                                {new Date(journey.route.arrivalTime).toLocaleTimeString(
+                                    'en-CA',
+                                    {
+                                        timeZone: 'America/Toronto',
+                                        hour: 'numeric',
+                                        minute: '2-digit',
+                                    }
+                                )}
+                            </Text>
+
+                            <Text>
+                                Transit duration: {journey.route.durationMinutes} min
+                            </Text>
+
+                            <Text>
+                                Approximate straight-line access distance:{' '}
+                                {Math.round(journey.walkingDistanceMeters)} m
+                            </Text>
+                        </View>
+                    ))}
+                </View>
+            )}
+
             {destination && (
                 <Pressable
                     style={({ pressed }) => [
