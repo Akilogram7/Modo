@@ -9,6 +9,7 @@ import type { CustomMode } from '../types/mode';
 import type { SharedTimer } from '../services/modeGroups';
 import { AlarmRow } from '../features/alarm';
 import { LockableScrollView } from '../components/ScrollLock';
+import { DndCard, dndOffForMode, useModeDnd } from '../features/dnd';
 import { endModeSession } from '../stats/modeSessions';
 import { MusicSettings } from '../features/music';
 import { openSpotifyPlaylist } from '../features/music';
@@ -63,8 +64,11 @@ export default function CustomModeScreen({
   const [alarmsOn, setAlarmsOn] = useState(mode.alarmEnabled);
   const [mapEnabled, setMapEnabled] = useState(mode.mapEnabled);
   const [scratchpadEnabled, setScratchpadEnabled] = useState(mode.scratchpadEnabled ?? false);
+  // Turns the phone's Do Not Disturb on when the mode starts (if the mode has it)
+  const dnd = useModeDnd(mode.dndEnabled ?? false);
 
   const finish = () => {
+    void dndOffForMode();
     void endModeSession();
     onEnd();
   };
@@ -225,6 +229,37 @@ export default function CustomModeScreen({
             </>
           )}
 
+          {/* DO NOT DISTURB — only if the mode has it */}
+          {mode.dndEnabled && (
+            <>
+              <Pressable
+                style={[styles.row, { marginTop: 20 }]}
+                onPress={() => dnd.set(!dnd.on)}
+                disabled={following}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: dnd.on, disabled: following }}
+              >
+                <View
+                  style={[
+                    styles.box,
+                    {
+                      backgroundColor: dnd.on ? '#FFFFFF' : accent,
+                      borderColor: accent,
+                    },
+                  ]}
+                >
+                  {dnd.on && <Ionicons name="checkmark" size={24} color={accent} />}
+                </View>
+
+                <Text style={[styles.rowText, { color: textColor }]}>
+                  DO NOT DISTURB
+                </Text>
+              </Pressable>
+
+              {dnd.on && <DndCard textColor={textColor} accentColor={accent} inMode />}
+            </>
+          )}
+
           {/* WEATHER — only available if enabled when creating the mode */}
           {mode.weatherEnabled && (
             <>
@@ -265,7 +300,8 @@ export default function CustomModeScreen({
             !mode.weatherEnabled &&
             !mode.alarmEnabled &&
             !mode.mapEnabled &&
-            !mode.scratchpadEnabled && (
+            !mode.scratchpadEnabled &&
+            !mode.dndEnabled && (
               <Text style={[styles.note, { color: textColor }]}>
                 No features are enabled yet.
               </Text>

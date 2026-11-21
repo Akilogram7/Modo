@@ -27,6 +27,7 @@ import { supabase } from '../../lib/supabase';
 import { LockableScrollView } from '../components/ScrollLock';
 import type { CustomModeInput } from '../types/mode';
 import { BlueLightCard, useBlueLight } from '../features/bluelight';
+import { DndCard, dndOffForMode, useModeDnd } from '../features/dnd';
 import { MusicSettings } from '../features/music';
 export type PresetKey = 'study' | 'sleep' | 'commute';
 import { useAuth } from '../providers/AuthProvider';
@@ -160,6 +161,10 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
   const [alarmsOn, setAlarmsOn] = useState(true);
   // Blue light filter: a warm tint on a schedule (saved on their account)
   const blueLight = useBlueLight();
+  // Do Not Disturb: starts the way this preset's DO NOT DISTURB row is set (on for Study)
+  const dnd = useModeDnd(
+    PRESETS[mode].rows.some((r) => r.label === 'DO NOT DISTURB' && r.checked),
+  );
   const [justAddedAlarm, setJustAddedAlarm] = useState<string | null>(null);
   // Save changes a moment after they stop changing them
   useEffect(() => {
@@ -362,14 +367,17 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                             ? alarmsOn
                             : r.label === 'BLUE LIGHT FILTER' && mode === 'sleep'
                               ? blueLight.settings.enabled
-                              : r.checked;
+                              : r.label === 'DO NOT DISTURB'
+                                ? dnd.on
+                                : r.checked;
                 const canToggle =
                   (r.label === 'YOUR ROUTE' && mode === 'commute') ||
                   (r.label === 'PLAYLIST' && supportsMusic) ||
                   (r.label === 'TIMER' && mode === 'study') ||
                   (r.label === 'WEATHER' && mode === 'commute') ||
                   (r.label === 'ALARM SET' && mode === 'sleep') ||
-                  (r.label === 'BLUE LIGHT FILTER' && mode === 'sleep');
+                  (r.label === 'BLUE LIGHT FILTER' && mode === 'sleep') ||
+                  r.label === 'DO NOT DISTURB';
                 const toggleDisabled =
                   (r.label === 'PLAYLIST' && (musicLoading || musicSaving)) ||
                   (r.label === 'YOUR ROUTE' && (mapLoading || mapSaving));
@@ -404,6 +412,8 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                           setAlarmsOn((prev) => !prev);
                         } else if (r.label === 'BLUE LIGHT FILTER' && mode === 'sleep') {
                           blueLight.update({ enabled: !blueLight.settings.enabled });
+                        } else if (r.label === 'DO NOT DISTURB') {
+                          dnd.set(!dnd.on);
                         }
                       }}
                       style={styles.row}
@@ -425,7 +435,9 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                       {r.label}
                     </Text>
                   </Pressable>
-                    {mode === 'sleep' && r.label === 'BLUE LIGHT FILTER' ? (
+                    {r.label === 'DO NOT DISTURB' ? (
+                      dnd.on ? <DndCard textColor={c.text} accentColor={c.accent} inMode /> : null
+                    ) : mode === 'sleep' && r.label === 'BLUE LIGHT FILTER' ? (
                       blueLight.settings.enabled ? (
                         <BlueLightCard textColor={c.text} accentColor={c.accent} />
                       ) : null
@@ -592,6 +604,7 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
                   weatherEnabled: mode === 'commute' && weatherEnabled,
                   alarmEnabled: mode === 'sleep' && alarmsOn && sleepAlarms.length > 0,
                   alarms: mode === 'sleep' && alarmsOn ? sleepAlarms : [],
+                  dndEnabled: dnd.on,
                   ...(mode === 'commute' && {
                     mapEnabled: mapSettings.enabled,
                     mapDestination: mapSettings.destination,
@@ -605,6 +618,7 @@ export default function PresetModeScreen({ mode, onChangeSettings, onEnd }: Prop
             <Pressable
               style={({ pressed }) => [styles.button, { backgroundColor: c.accent }, pressed && styles.pressed]}
               onPress={() => {
+                void dndOffForMode();
                 endModeSession(); // saves when the mode ended, for stats*
                 onEnd?.();
               }}

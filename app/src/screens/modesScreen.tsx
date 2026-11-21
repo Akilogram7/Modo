@@ -107,6 +107,9 @@ function starterFor(preset: (typeof PRESETS)[number]): CustomModeInput {
 
     // Scratchpad
     scratchpadEnabled: false,
+
+    // Do Not Disturb (Study has it on, like its DO NOT DISTURB row)
+    dndEnabled: preset.id === 'study',
   };
 }
 
@@ -585,6 +588,9 @@ function modeName(mode: CustomMode) {
 // "25 min timer, Spotify playlist", "25 min timer", "No features yet"...
 function featureSummary(mode: CustomMode) {
   const parts: string[] = [];
+  if (mode.dndEnabled) {
+    parts.push('Do Not Disturb');
+  }
   if (mode.weatherEnabled) {
     parts.push('Weather');
   }

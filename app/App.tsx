@@ -18,6 +18,7 @@ import AchievementsScreen from './src/achievements/achievementsScreen';
 import { AchievementsProvider, useAchievements } from './src/achievements/AchievementsProvider';
 import AchievementToast from './src/achievements/AchievementToast';
 import { BlueLightOverlay, BlueLightProvider } from './src/features/bluelight';
+import { dndOffForMode } from './src/features/dnd';
 import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { AuthGate } from './src/components/AuthGate';
 import { endModeSession, fetchLastUsed, startModeSession } from './src/stats/modeSessions';
@@ -603,6 +604,9 @@ function AppContent() {
 
                     console.log('Saved custom mode:', newMode);
                   }
+
+                  // Saving a running preset's settings leaves that mode, so turn its Do Not Disturb off
+                  if (createFrom === 'mode') void dndOffForMode();
 
                   // Go back to the modes screen if that's where they came from
                   const backTo = createFrom === 'modes' ? 'modes' : 'home';
