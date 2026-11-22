@@ -22,6 +22,7 @@ import { supabase } from '../../lib/supabase';
 import { colors, gradientStops, gradientDirection, fonts, shadows, backgroundColors } from '../../assets/theme';
 import GuestUpgradeCard from '../components/GuestUpgradeCard';
 import { useAchievements } from '../achievements/AchievementsProvider';
+import { FloatingCloud } from '../components/AuthBackground';
 
 // Modos users can pick as their profile picture.
 // The key is what gets saved on the account, so don't rename keys once people use them.
@@ -364,6 +365,11 @@ export default function ProfileScreen(_props: Props) {
       end={gradientDirection.end}
       style={styles.bg}
     >
+      {/* Animated background */}
+      <FloatingCloud top={0.75} size={1.5} opacity={0.50} duration={20000} startAt={0.2} from="left" />
+      <FloatingCloud top={0.40} size={1.5} opacity={0.10} duration={25000} startAt={0.1} from="left" />
+      <FloatingCloud top={0.20} size={2.0} opacity={0.50} duration={20000} startAt={0.3} from="right" />
+
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}

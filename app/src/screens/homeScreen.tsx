@@ -30,7 +30,6 @@ type Props = {
   onModePress?: (mode: 'study' | 'sleep' | 'commute') => void;
   onCreateMode?: () => void;
   onAchievements?: () => void;
-  onSettings?: () => void;
   customModes?: CustomMode[];
   presetConfigs?: Partial<Record<'study' | 'sleep' | 'commute', CustomModeInput>>;
   onCustomModePress?: (mode: CustomMode) => void;
@@ -65,7 +64,6 @@ export default function HomeScreen({
   onModePress,
   onCreateMode,
   onAchievements,
-  onSettings,
   customModes = [],
   presetConfigs = {},
   onCustomModePress,
@@ -185,24 +183,6 @@ export default function HomeScreen({
                 What are we{'\n'}in the mode for?
               </Text>
             </View>
-
-            {/* Settings button */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.gear,
-                pressed && styles.pressed,
-              ]}
-              onPress={onSettings}
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel="Settings"
-            >
-              <Ionicons
-                name="settings-sharp"
-                size={24}
-                color="#171717"
-              />
-            </Pressable>
           </View>
 
           <Text style={styles.heading}>Recent Modes</Text>
@@ -328,23 +308,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontFamily: fonts.heading,
     color: colors.heading,
-  },
-
-  gear: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 4,
   },
 
   title: {
