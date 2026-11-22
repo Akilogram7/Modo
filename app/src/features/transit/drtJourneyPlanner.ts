@@ -17,21 +17,6 @@ export async function planDrtJourney(
   const originStops = getNearbyDrtStops(origin, 1500, 8);
   const destinationStops = getNearbyDrtStops(destination, 1500, 8);
 
-  console.log('DRT ROUTING DEBUG:', {
-  origin: origin.label,
-  destination: destination.label,
-  originStops: originStops.map((stop) => ({
-    id: stop.id,
-    name: stop.name,
-    distance: Math.round(stop.distanceMeters ?? 0),
-  })),
-  destinationStops: destinationStops.map((stop) => ({
-    id: stop.id,
-    name: stop.name,
-    distance: Math.round(stop.distanceMeters ?? 0),
-  })),
-});
-
   if (originStops.length === 0 || destinationStops.length === 0) {
     return [];
   }
@@ -73,17 +58,33 @@ export async function planDrtJourney(
     results.push(...batchResults.flat());
   }
 
-  return results
-    .sort((a, b) => {
-      const arrivalDifference =
-        new Date(a.route.arrivalTime).getTime() -
-        new Date(b.route.arrivalTime).getTime();
+  // Remove duplicate journeys before displaying results.
+const uniqueJourneys = new Map<string, DrtJourney>();
 
-      if (arrivalDifference !== 0) {
-        return arrivalDifference;
-      }
+for (const journey of results) {
+  const key = [
+    journey.route.firstTripId,
+    journey.route.secondTripId ?? 'direct',
+    journey.originStop.id,
+    journey.destinationStop.id,
+  ].join('-');
 
-      return a.route.transferCount - b.route.transferCount;
-    })
-    .slice(0, 5);
+  if (!uniqueJourneys.has(key)) {
+    uniqueJourneys.set(key, journey);
+  }
+}
+
+return Array.from(uniqueJourneys.values())
+  .sort((a, b) => {
+    const arrivalDifference =
+      new Date(a.route.arrivalTime).getTime() -
+      new Date(b.route.arrivalTime).getTime();
+
+    if (arrivalDifference !== 0) {
+      return arrivalDifference;
+    }
+
+    return a.route.transferCount - b.route.transferCount;
+  })
+  .slice(0, 5);
 }

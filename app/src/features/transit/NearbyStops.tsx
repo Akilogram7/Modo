@@ -199,15 +199,6 @@ export function NearbyStops({
               ? goArrivals
               : getUpcomingArrivals(stop.id, currentTime);
 
-        if (isSelected) {
-          console.log('TRANSIT DEBUG:', {
-            stopId: stop.id,
-            stopName: stop.name,
-            currentTime: new Date().toISOString(),
-            arrivals,
-          });
-        }
-
         return (
           <View key={stop.id} style={styles.stopCard}>
             <Pressable onPress={() => handleSelectStop(stop.id)}>

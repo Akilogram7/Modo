@@ -639,8 +639,6 @@ function AppContent() {
                     recordAchievement('modesCreated');
 
                     setCustomModes((prev) => [...prev, newMode]);
-
-                    console.log('Saved custom mode:', newMode);
                   }
 
                   // Saving a running preset's settings leaves that mode, so turn its Do Not Disturb off
