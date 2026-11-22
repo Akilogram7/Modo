@@ -33,6 +33,7 @@ type NearbyStopsProps = {
   onStopsFound?: (stops: TransitStop[]) => void;
   selectedStopId?: string | null;
   onSelectStop?: (stopId: string | null) => void;
+  accentColor?: string;
 };
 
 export function NearbyStops({
@@ -40,6 +41,7 @@ export function NearbyStops({
   onStopsFound,
   selectedStopId: externalSelectedStopId,
   onSelectStop,
+  accentColor = colors.otherText,
 }: NearbyStopsProps) {
   const [stops, setStops] = useState<TransitStop[]>([]);
   const [loading, setLoading] = useState(false);
@@ -96,7 +98,7 @@ export function NearbyStops({
 
     return () => clearInterval(interval);
   }, [selectedStopId]);
-  //Go departure fetch 
+  //Go departure fetch
   useEffect(() => {
     const selectedStop = stops.find(
       (stop) => stop.id === selectedStopId
@@ -156,7 +158,11 @@ export function NearbyStops({
 
       <Pressable
         style={({ pressed }) => [
+
+
+
           styles.button,
+          { backgroundColor: accentColor },
           loading && styles.disabledButton,
           pressed && styles.pressed,
         ]}

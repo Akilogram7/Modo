@@ -396,6 +396,7 @@ export default function CustomModeScreen({
               {mapEnabled && (
                 <View style={{ marginTop: 16 }}>
                   <MapCard
+                    accentColor={accent}
                     key={mode.id}
                     initialSettings={{
                       enabled: true,

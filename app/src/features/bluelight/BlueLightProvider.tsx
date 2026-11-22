@@ -18,13 +18,16 @@ import {
   type BlueLightSettings,
 } from './blueLight';
 
+
 // Holds the blue light filter settings for whoever is logged in, saves them to their
 // account, and knows whether the warm tint should be showing right now.
 
 type ContextValue = {
   settings: BlueLightSettings;
   update: (changes: Partial<BlueLightSettings>) => void;
-  active: boolean; // the tint is on right now
+  active: boolean;
+  modeActive: boolean;
+  setModeActive: (active: boolean) => void;
 };
 
 const BlueLightContext = createContext<ContextValue | undefined>(undefined);
@@ -43,6 +46,8 @@ export function BlueLightProvider({ children }: PropsWithChildren) {
   const settings = edited && edited.userId === userId ? edited.settings : saved;
 
   const [now, setNow] = useState(() => new Date());
+
+  const [modeActive, setModeActive] = useState(false);
 
   // Save to the account after they stop changing things
   useEffect(() => {
@@ -79,11 +84,12 @@ export function BlueLightProvider({ children }: PropsWithChildren) {
         setNow(new Date());
         setEdited({ userId, settings: { ...settings, ...changes } });
       },
-      active: isFilterOn(settings, now),
+      active: modeActive && isFilterOn(settings, now),
+      modeActive,
+      setModeActive,
     }),
-    [settings, now, userId],
+    [settings, now, userId, modeActive],
   );
-
   return <BlueLightContext.Provider value={value}>{children}</BlueLightContext.Provider>;
 }
 

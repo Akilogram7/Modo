@@ -82,7 +82,7 @@ export default function AlarmTimePicker({ value, onChange, textColor, accentColo
 
 // ---------- One wheel ----------
 
-const ITEM_HEIGHT = 44;
+const ITEM_HEIGHT = 50;
 const VISIBLE_ITEMS = 3; // the picked one in the middle, one above, one below
 const SETTLE_MS = 150; // how long the wheel has to stop moving before the number counts
 
@@ -114,12 +114,18 @@ const WheelItem = memo(function WheelItem({
   color: string;
 }) {
   const size = picked ? PICKED_SIZE : OTHER_SIZE;
+
   return (
     <View style={styles.item}>
       <Text
         style={[
           styles.itemText,
-          { color, fontSize: size, lineHeight: size + 8, transform: [{ translateY: size * NUDGE_RATIO }] },
+          {
+            color,
+            fontSize: size,
+            lineHeight: size + 8,
+            transform: [{ translateY: 4 }],
+          },
           picked ? styles.itemPicked : styles.itemOther,
         ]}
       >
@@ -221,7 +227,17 @@ function Wheel({
   };
 
   const onStop = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    commit(posAt(event.nativeEvent.contentOffset.y));
+    const pos = posAt(event.nativeEvent.contentOffset.y);
+    const targetY = pos * ITEM_HEIGHT;
+
+    scrollY.current = targetY;
+    scrollRef.current?.scrollTo({
+      y: targetY,
+      animated: false,
+    });
+
+    setMiddle(pos);
+    commit(pos);
   };
 
   return (
@@ -316,10 +332,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   itemText: {
-    fontFamily: fonts.headingBold,
+    fontFamily: Platform.OS === 'android' ? 'sans-serif' : fonts.headingBold,
+    fontWeight: 'bold',
     textAlign: 'center',
     textAlignVertical: 'center',
-    includeFontPadding: false, // Android only: removes the extra space above and below the text
+    includeFontPadding: false,
   },
   itemPicked: {},
   itemOther: {

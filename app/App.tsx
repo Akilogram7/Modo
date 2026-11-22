@@ -25,6 +25,7 @@ import { endModeSession, fetchLastUsed, startModeSession } from './src/stats/mod
 import CustomModeScreen from './src/screens/customModeScreen';
 import ModesScreen, { presetStarter } from './src/screens/modesScreen';
 import type { CustomMode, CustomModeInput } from './src/types/mode';
+import { loadPresetConfig, savePresetConfig } from './src/services/presetSettings';
 import {
   createCustomMode,
   deleteCustomMode,
@@ -103,8 +104,11 @@ function AppContent() {
   const [createFrom, setCreateFrom] = useState<'home' | 'mode' | 'customMode' | 'modes'>('home');
   // The mode being edited on the create mode screen (null = making a new one)
   const [editingMode, setEditingMode] = useState<CustomMode | null>(null);
-  // Settings to start a NEW mode with (used when you edit a preset from the modes screen)
+  // Initial settings for the editor when editing a preset
   const [prefillMode, setPrefillMode] = useState<CustomModeInput | null>(null);
+  // Presets keep their stable study/sleep/commute IDs, separate from custom modes.
+  const [presetConfigs, setPresetConfigs] = useState<Partial<Record<PresetKey, CustomModeInput>>>({});
+  const [editingPreset, setEditingPreset] = useState<PresetKey | null>(null);
 
   // Sharing: modes the user shares with friends, and friends' modes they joined
   const [groups, setGroups] = useState<ModeGroups>(NO_GROUPS);
@@ -159,6 +163,8 @@ function AppContent() {
     lastHostStartsRef.current = {};
     setFollowing(null);
     setLastUsed({});
+    setPresetConfigs({});
+    setEditingPreset(null);
 
     if (!session?.user.id) {
       setTab('home');
@@ -181,6 +187,23 @@ function AppContent() {
         if (!cancelled) setLastUsed((prev) => ({ ...times, ...prev }));
       })
       .catch((error) => console.warn('Could not load recently used modes:', error));
+
+    // Preset configurations belong to the signed-in user, just like custom modes.
+    Promise.all(
+      (['study', 'sleep', 'commute'] as PresetKey[]).map(async (id) => ({
+        id,
+        config: await loadPresetConfig(id),
+      })),
+    )
+      .then((items) => {
+        if (cancelled) return;
+        const saved: Partial<Record<PresetKey, CustomModeInput>> = {};
+        for (const { id, config } of items) {
+          if (config) saved[id] = config;
+        }
+        setPresetConfigs(saved);
+      })
+      .catch((error) => console.warn('Could not load preset configurations:', error));
 
     fetchCustomModes()
       .then((modes) => {
@@ -440,7 +463,7 @@ function AppContent() {
   }
 
   // Pass a mode as `editing` to edit it instead of making a new one.
-  // Pass `prefill` to make a NEW mode that starts with those settings (editing a preset).
+  // Pass `prefill` to initialize the editor; editingPreset selects preset persistence.
   async function openCreateMode(
     from: 'home' | 'mode' | 'customMode' | 'modes',
     editing: CustomMode | null = null,
@@ -449,6 +472,7 @@ function AppContent() {
     setCreateFrom(from);
     setEditingMode(editing);
     setPrefillMode(prefill);
+    setEditingPreset(null);
 
     if (!charsReady) {
       setLoadingCreate(true);
@@ -467,6 +491,13 @@ function AppContent() {
     }
 
     setScreen('createMode');
+  }
+
+  // Editing a built-in preset must never create a row in the custom 'modes' table.
+  async function openPresetEditor(id: PresetKey, from: 'mode' | 'modes') {
+    const initial = presetConfigs[id] ?? presetStarter(id);
+    await openCreateMode(from, null, initial);
+    setEditingPreset(id);
   }
 
   if (loadingCreate) {
@@ -491,6 +522,7 @@ function AppContent() {
           {screen === 'home' && (
             <HomeScreen
               customModes={allCustomModes}
+              presetConfigs={presetConfigs}
               lastUsed={lastUsed}
               onSeeAllModes={() => goToTab('modes')}
               onCustomModePress={pressCustomMode}
@@ -503,9 +535,10 @@ function AppContent() {
           {screen === 'mode' && (
             <PresetModeScreen
               mode={preset}
-              // Start the edit screen with this preset's settings (saves as your own mode)
+              config={presetConfigs[preset]}
+              // Open the editor for the existing preset ID.
               onChangeSettings={(current) =>
-                openCreateMode('mode', null, { ...presetStarter(preset), ...current })
+                openPresetEditor(preset, 'mode')
               }
               onEnd={() => {
                 tellFriendsModeEnded();
@@ -547,8 +580,9 @@ function AppContent() {
           {screen === 'modes' && (
             <ModesScreen
               customModes={customModes}
+              presetConfigs={presetConfigs}
               onPresetPress={startPresetMode}
-              onEditPreset={(starter) => openCreateMode('modes', null, starter)}
+              onEditPreset={(id) => void openPresetEditor(id, 'modes')}
               onCustomModePress={pressCustomMode}
               onCreateMode={() => openCreateMode('modes')}
               onEditMode={(mode) => openCreateMode('modes', mode)}
@@ -579,7 +613,13 @@ function AppContent() {
                 setSavingMode(true);
 
                 try {
-                  if (editingMode) {
+                  if (editingPreset) {
+                    await savePresetConfig(editingPreset, mode);
+                    setPresetConfigs((prev) => ({ ...prev, [editingPreset]: mode }));
+                    recordAchievement('presetsEdited');
+                    setScreen(createFrom);
+                    return;
+                  } else if (editingMode) {
                     // Editing: save the changes over the existing mode
                     const updatedMode = await updateCustomMode(editingMode.id, mode);
                     recordAchievement('modesEdited');
@@ -597,8 +637,6 @@ function AppContent() {
                   } else {
                     const newMode = await createCustomMode(mode);
                     recordAchievement('modesCreated');
-                    // Editing a preset saves it as a new mode of your own
-                    if (prefillMode) recordAchievement('presetsEdited');
 
                     setCustomModes((prev) => [...prev, newMode]);
 

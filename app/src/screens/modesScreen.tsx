@@ -123,7 +123,8 @@ type Props = {
   customModes: CustomMode[];
   onPresetPress: (mode: PresetKey) => void;
   // Editing a preset opens Create Mode with the preset's settings filled in (saves as your own mode)
-  onEditPreset: (starter: CustomModeInput) => void;
+  onEditPreset: (id: PresetKey) => void;
+  presetConfigs?: Partial<Record<PresetKey, CustomModeInput>>;
   onCustomModePress: (mode: CustomMode) => void;
   onCreateMode: () => void;
   onEditMode: (mode: CustomMode) => void;
@@ -144,6 +145,7 @@ export default function ModesScreen({
   customModes,
   onPresetPress,
   onEditPreset,
+  presetConfigs = {},
   onCustomModePress,
   onCreateMode,
   onEditMode,
@@ -229,8 +231,8 @@ export default function ModesScreen({
     Alert.alert(
       action === 'share' ? "Can't share a preset yet" : "Can't delete a preset",
       action === 'share'
-        ? 'Tap the pencil to make your own copy of this mode. Then you can share your copy.'
-        : 'Preset modes come with the app. Tap the pencil to make your own copy and change it.',
+        ? 'Sharing built-in presets is not supported yet.'
+        : 'Built-in presets cannot be deleted, but you can edit them using the pencil.',
     );
   }
 
@@ -304,12 +306,16 @@ export default function ModesScreen({
 
           <View style={styles.list}>
             {/* The 3 modes that come with the app (they always stay at the top) */}
-            {PRESETS.map((preset) => (
+            {PRESETS.map((preset) => {
+              const config = presetConfigs[preset.id];
+              const displayName = config?.name?.trim() || preset.label;
+              const displayImage = config ? (config.character !== null ? CHARACTERS[config.character] : undefined) : preset.img;
+              return (
               <ModeBar
                 key={preset.id}
-                name={preset.label}
-                color={preset.color}
-                image={preset.img}
+                name={displayName}
+                color={config?.color ?? preset.color}
+                image={displayImage}
                 disabled={reordering || deletingId !== null}
                 onPress={() => onPresetPress(preset.id)}
               >
@@ -317,26 +323,27 @@ export default function ModesScreen({
                   <>
                     <CircleButton
                       icon="share-social"
-                      label={`Share ${preset.label}`}
+                      label={`Share ${displayName}`}
                       dimmed
                       onPress={() => presetNotice('share')}
                     />
                     <CircleButton
                       icon="pencil"
-                      label={`Edit ${preset.label}`}
+                      label={`Edit ${displayName}`}
                       disabled={deletingId !== null}
-                      onPress={() => onEditPreset(starterFor(preset))}
+                      onPress={() => onEditPreset(preset.id)}
                     />
                     <CircleButton
                       icon="trash"
-                      label={`Delete ${preset.label}`}
+                      label={`Delete ${displayName}`}
                       dimmed
                       onPress={() => presetNotice('delete')}
                     />
                   </>
                 )}
               </ModeBar>
-            ))}
+              );
+            })}
 
             {shownModes.length === 0 && (
               <View style={styles.emptyCard}>
@@ -396,7 +403,7 @@ export default function ModesScreen({
                   </>
                 )}
               </ModeBar>
-            ))}
+              ))}
 
             {/* Create mode (hidden while reordering so it doesn't get in the way) */}
             {!reordering && (
@@ -470,7 +477,7 @@ export default function ModesScreen({
                   onPress={() => confirmLeave(joined)}
                 />
               </ModeBar>
-            ))}
+              ))}
           </View>
         </ScrollView>
       </SafeAreaView>
