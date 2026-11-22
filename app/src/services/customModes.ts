@@ -62,7 +62,6 @@ function toModeColumns(mode: NewCustomMode) {
 
 // Convert a database row into the format our screens use.
 export function toCustomMode(row: any): CustomMode {
-    console.log('Supabase music settings:', row.feature_settings);
     return {
         id: row.id,
         name: row.name,
