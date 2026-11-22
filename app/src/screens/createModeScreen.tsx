@@ -184,18 +184,18 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
   // Do Not Disturb
   const [dndEnabled, setDndEnabled] = useState(initialMode?.dndEnabled ?? false);
 
-// Feature search
-const [query, setQuery] = useState('');
+  // Feature search
+  const [query, setQuery] = useState('');
 
-// A mode needs at least one feature, or there's nothing for it to do
-const hasFeature =
-  timerEnabled ||
-  musicEnabled ||
-  weatherEnabled ||
-  (alarmEnabled && alarms.length > 0) ||
-  mapSettings.enabled ||
-  scratchpadEnabled ||
-  dndEnabled;
+  // A mode needs at least one feature, or there's nothing for it to do
+  const hasFeature =
+    timerEnabled ||
+    musicEnabled ||
+    weatherEnabled ||
+    (alarmEnabled && alarms.length > 0) ||
+    mapSettings.enabled ||
+    scratchpadEnabled ||
+    dndEnabled;
 
   // text and buttons follow the chosen background colour
   const dark = isDark(color);
@@ -280,6 +280,7 @@ const hasFeature =
       case 'maps':
         return (
           <MapCard
+            accentColor={buttonColor}
             key={initialMode?.mapDestination?.label ?? 'new-map'}
             initialSettings={mapSettings}
             onSaveSettings={async (settings) => {
@@ -298,13 +299,13 @@ const hasFeature =
     }
   };
 
-const q = query.trim().toLowerCase();
+  const q = query.trim().toLowerCase();
 
-const filteredFeatures = FEATURES.filter(
-  (feature) =>
-    feature.label.toLowerCase().includes(q) ||
-    feature.words.toLowerCase().includes(q)
-);
+  const filteredFeatures = FEATURES.filter(
+    (feature) =>
+      feature.label.toLowerCase().includes(q) ||
+      feature.words.toLowerCase().includes(q)
+  );
 
   return (
     <LinearGradient

@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, gradientStops, gradientDirection, fonts, shadows } from '../../assets/theme';
 import { useAuth } from '../providers/AuthProvider';
 import { CHARACTERS } from './createModeScreen';
-import type { CustomMode } from '../types/mode';
+import type { CustomMode, CustomModeInput } from '../types/mode';
 import { FloatingCloud } from '../components/AuthBackground';
 import ModoArch from '../components/ModoArch';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -31,6 +31,7 @@ type Props = {
   onCreateMode?: () => void;
   onAchievements?: () => void;
   customModes?: CustomMode[];
+  presetConfigs?: Partial<Record<'study' | 'sleep' | 'commute', CustomModeInput>>;
   onCustomModePress?: (mode: CustomMode) => void;
   // when each mode was last started: { modeId: time in milliseconds }
   lastUsed?: Record<string, number>;
@@ -64,6 +65,7 @@ export default function HomeScreen({
   onCreateMode,
   onAchievements,
   customModes = [],
+  presetConfigs = {},
   onCustomModePress,
   lastUsed = {},
   onSeeAllModes,
@@ -84,9 +86,13 @@ export default function HomeScreen({
   const allCards = [
     ...MODES.map((m) => ({
       key: m.id as string,
-      label: m.label as string,
-      color: m.color,
-      img: m.img as number | undefined,
+      label: presetConfigs[m.id]?.name?.trim() || m.label,
+      color: presetConfigs[m.id]?.color ?? m.color,
+      img: presetConfigs[m.id]
+        ? (presetConfigs[m.id]!.character !== null
+            ? CHARACTERS[presetConfigs[m.id]!.character!] as number | undefined
+            : undefined)
+        : m.img as number | undefined,
       onPress: () => onModePress?.(m.id),
     })),
     ...customModes.map((mode) => ({

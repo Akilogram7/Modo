@@ -314,6 +314,7 @@ export function MapCard({
                 title="Destination"
                 value={destination}
                 onSelect={handleDestinationChange}
+                accentColor={accentColor}
             />
 
             <TravelModeSelector
@@ -622,6 +623,7 @@ export function MapCard({
                 onStopsFound={setTransitStops}
                 selectedStopId={selectedTransitStopId}
                 onSelectStop={setSelectedTransitStopId}
+                accentColor={accentColor}
             />
         </View>
     );
