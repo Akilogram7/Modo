@@ -476,6 +476,20 @@ export default function CreateModeScreen({ onBack, onCreate, initialMode }: Prop
                 );
                 return;
               }
+              if (musicEnabled) {
+                const url = playlistUrl.trim();
+
+                const validSpotifyPlaylist =
+                  /^https:\/\/open\.spotify\.com\/playlist\/[A-Za-z0-9]+\/?(?:\?.*)?$/.test(url);
+
+                if (!validSpotifyPlaylist) {
+                  Alert.alert(
+                    'Spotify playlist required',
+                    'Please add a valid Spotify playlist link before saving your mode.',
+                  );
+                  return;
+                }
+              }
               onCreate?.({
                 name: name.trim(),
                 color,

@@ -430,7 +430,7 @@ export default function ModesScreen({
           {/* Friends' modes the user joined with a code */}
           <View style={[styles.sectionRow, styles.sharedRow]}>
             <Text style={[styles.sectionTitle, styles.sectionTitleInRow, styles.sharedTitle]}>
-              Shared with you
+              Group Mode
             </Text>
 
             <Pressable

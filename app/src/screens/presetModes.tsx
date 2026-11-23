@@ -89,14 +89,14 @@ const GRADIENT_END = { x: 0.22, y: 0.735 };
 type Row = {
   label: string;
   checked: boolean;
-  box?: boolean; // shows an empty box under the row (Commute: your route, weather)**
+  box?: boolean; // shows an empty box under the row (Commute: your route, weather)
 };
 type Preset = {
   title: string;
   image: number;
   rows: Row[];
-  time?: string; // big text under the rows**
-  timeNote?: string; // small text under the big text**
+  time?: string; // big text under the rows
+  timeNote?: string; // small text under the big text
 };
 const PRESETS: Record<PresetKey, Preset> = {
   study: {
@@ -115,6 +115,7 @@ const PRESETS: Record<PresetKey, Preset> = {
     rows: [
       { label: 'BLUE LIGHT FILTER', checked: true },
       { label: 'DO NOT DISTURB', checked: false },
+      { label: 'TIMER', checked: false },
       { label: 'ALARM SET', checked: true },
     ],
     time: '8:00 AM',
@@ -150,6 +151,10 @@ type Props = {
 export default function PresetModeScreen({ mode, config, onChangeSettings, onEnd }: Props) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const responsiveButtonFont = Math.max(
+    18,
+    Math.min(28, width * 0.065)
+  );
   const preset = PRESETS[mode];
   const baseColors = presetModeColors[mode];
   const c = config ? {
@@ -318,8 +323,10 @@ export default function PresetModeScreen({ mode, config, onChangeSettings, onEnd
     setMusicSaving(true);
     try {
       if (mode === 'sleep' && config) {
-        await savePresetConfig(mode, { ...config, musicEnabled: music.enabled,
-          playlistUrl: music.playlistUrl || null, playlistName: music.playlistName || null });
+        await savePresetConfig(mode, {
+          ...config, musicEnabled: music.enabled,
+          playlistUrl: music.playlistUrl || null, playlistName: music.playlistName || null
+        });
       } else {
         await savePresetMusic(mode as MusicPresetKey, music);
       }
@@ -342,8 +349,10 @@ export default function PresetModeScreen({ mode, config, onChangeSettings, onEnd
     settings: SavedMapSettings,
   ): Promise<void> {
     if (mode === 'commute') await savePresetMaps('commute', settings);
-    else if (config) await savePresetConfig(mode, { ...config, mapEnabled: settings.enabled,
-      mapDestination: settings.destination, mapTravelMode: settings.travelMode });
+    else if (config) await savePresetConfig(mode, {
+      ...config, mapEnabled: settings.enabled,
+      mapDestination: settings.destination, mapTravelMode: settings.travelMode
+    });
     setMapSettings(settings);
   }
   // Toggle Maps without discarding the saved destination.
@@ -356,8 +365,10 @@ export default function PresetModeScreen({ mode, config, onChangeSettings, onEnd
     setMapSaving(true);
     try {
       if (mode === 'commute') await savePresetMaps('commute', nextSettings);
-      else if (config) await savePresetConfig(mode, { ...config, mapEnabled: nextSettings.enabled,
-        mapDestination: nextSettings.destination, mapTravelMode: nextSettings.travelMode });
+      else if (config) await savePresetConfig(mode, {
+        ...config, mapEnabled: nextSettings.enabled,
+        mapDestination: nextSettings.destination, mapTravelMode: nextSettings.travelMode
+      });
       setMapSettings(nextSettings);
     } catch (error) {
       console.error('Failed to toggle Maps:', error);
@@ -419,7 +430,7 @@ export default function PresetModeScreen({ mode, config, onChangeSettings, onEnd
                                 ? dnd.on
                                 : r.label === 'SCRATCHPAD'
                                   ? scratchpadOn
-                                : r.checked;
+                                  : r.checked;
                 const canToggle =
                   (r.label === 'YOUR ROUTE') ||
                   (r.label === 'PLAYLIST' && supportsMusic) ||
@@ -486,6 +497,50 @@ export default function PresetModeScreen({ mode, config, onChangeSettings, onEnd
                         {r.label}
                       </Text>
                     </Pressable>
+                    {r.label === 'TIMER' && timerEnabled && (
+                      <FocusTimer
+                        initialDurationSeconds={config?.timerDuration ?? 120 * 60}
+                        initialBreakMinutes={config?.breakMinutes ?? 0}
+                        textColor={c.text}
+                        accentColor={c.accent}
+                      />
+                    )}
+                    {/* Sleep mode's alarms: each rings at its time on the phone's clock */}
+                    {r.label === 'ALARM SET' && alarmsOn && (
+                      <>
+                        {effectiveAlarms.map((a) => (
+                          <AlarmRow
+                            key={a.id}
+                            alarm={a}
+                            modeTitle={`${config?.name ?? mode} mode`}
+                            textColor={c.text}
+                            accentColor={c.accent}
+                            startOpen={a.id === justAddedAlarm}
+                            onChange={mode === 'sleep' ? (next) =>
+                              setSleepAlarms((list) => list.map((x) => (x.id === next.id ? next : x)))
+                              : undefined}
+                            onDelete={mode === 'sleep' ? () => setSleepAlarms((list) => list.filter((x) => x.id !== a.id)) : undefined}
+                          />
+                        ))}
+                        {mode === 'sleep' && sleepAlarms.length < MAX_ALARMS && (
+                          <Pressable
+                            onPress={() => {
+                              const added = newAlarm();
+                              setJustAddedAlarm(added.id);
+                              setSleepAlarms((list) => [...list, added]);
+                            }}
+                            style={({ pressed }) => [
+                              styles.addAlarmButton,
+                              { borderColor: c.text },
+                              pressed && styles.pressed,
+                            ]}
+                            accessibilityRole="button"
+                          >
+                            <Text style={[styles.addAlarmText, { color: c.text }]}>+ ADD ALARM</Text>
+                          </Pressable>
+                        )}
+                      </>
+                    )}
                     {r.label === 'PLAYLIST' && supportsMusic ? (
                       !musicLoading && music.enabled && showMusicSettings ? (
                         <View style={styles.musicSettingsPanel}>
@@ -552,100 +607,55 @@ export default function PresetModeScreen({ mode, config, onChangeSettings, onEnd
                         ]}
                       />
                     ) : null
-                  }
-                  {r.label === 'PLAYLIST' && supportsMusic &&
-                    !musicLoading &&
-                    music.enabled &&
-                    normalizeSpotifyPlaylist(music.playlistUrl) && (
-                      <Pressable
-                        onPress={async () => {
-                          try {
-                            await openSpotifyPlaylist(music.playlistUrl);
-                          } catch {
-                            Alert.alert(
-                              'Spotify error',
-                              'Unable to open your playlist.',
-                            );
-                          }
-                        }}
-                        style={({ pressed }) => [
-                          styles.spotifyButton,
-                          { marginTop: 12 },
-                          pressed && styles.pressed,
-                        ]}
-                      >
-                        <Ionicons
-                          name="musical-notes"
-                          size={30}
-                          color="#FFFFFF"
-                        />
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.spotifyButtonText}>
-                            OPEN SPOTIFY
-                          </Text>
-                          <Text
-                            style={styles.spotifyPlaylistName}
-                            numberOfLines={2}
-                          >
-                            {music.playlistName.trim() || 'YOUR PLAYLIST'}
-                          </Text>
-                        </View>
-                        <Ionicons
-                          name="open-outline"
-                          size={24}
-                          color="#FFFFFF"
-                        />
-                      </Pressable>
-                    )}
+                    }
+                    {r.label === 'PLAYLIST' && supportsMusic &&
+                      !musicLoading &&
+                      music.enabled &&
+                      normalizeSpotifyPlaylist(music.playlistUrl) && (
+                        <Pressable
+                          onPress={async () => {
+                            try {
+                              await openSpotifyPlaylist(music.playlistUrl);
+                            } catch {
+                              Alert.alert(
+                                'Spotify error',
+                                'Unable to open your playlist.',
+                              );
+                            }
+                          }}
+                          style={({ pressed }) => [
+                            styles.spotifyButton,
+                            { marginTop: 12 },
+                            pressed && styles.pressed,
+                          ]}
+                        >
+                          <Ionicons
+                            name="musical-notes"
+                            size={30}
+                            color="#FFFFFF"
+                          />
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.spotifyButtonText}>
+                              OPEN SPOTIFY
+                            </Text>
+                            <Text
+                              style={styles.spotifyPlaylistName}
+                              numberOfLines={2}
+                            >
+                              {music.playlistName.trim() || 'YOUR PLAYLIST'}
+                            </Text>
+                          </View>
+                          <Ionicons
+                            name="open-outline"
+                            size={24}
+                            color="#FFFFFF"
+                          />
+                        </Pressable>
+                      )}
                   </View>
                 );
               })}
             </View>
-            {/* Sleep mode's alarms: each rings at its time on the phone's clock */}
-            {(config ? config.alarmEnabled : mode === 'sleep') && alarmsOn && (
-              <>
-                {effectiveAlarms.map((a) => (
-                  <AlarmRow
-                    key={a.id}
-                    alarm={a}
-                    modeTitle={`${config?.name ?? mode} mode`}
-                    textColor={c.text}
-                    accentColor={c.accent}
-                    startOpen={a.id === justAddedAlarm}
-                    onChange={mode === 'sleep' ? (next) =>
-                      setSleepAlarms((list) => list.map((x) => (x.id === next.id ? next : x)))
-                    : undefined}
-                    onDelete={mode === 'sleep' ? () => setSleepAlarms((list) => list.filter((x) => x.id !== a.id)) : undefined}
-                  />
-                ))}
-                {mode === 'sleep' && sleepAlarms.length < MAX_ALARMS && (
-                  <Pressable
-                    onPress={() => {
-                      const added = newAlarm();
-                      setJustAddedAlarm(added.id);
-                      setSleepAlarms((list) => [...list, added]);
-                    }}
-                    style={({ pressed }) => [
-                      styles.addAlarmButton,
-                      { borderColor: c.text },
-                      pressed && styles.pressed,
-                    ]}
-                    accessibilityRole="button"
-                  >
-                    <Text style={[styles.addAlarmText, { color: c.text }]}>+ ADD ALARM</Text>
-                  </Pressable>
-                )}
-              </>
-            )}
-            {/* Reuse the same timer in Study Mode and custom modes. */}
-            {(config ? config.timerEnabled : mode === 'study') && timerEnabled && (
-              <FocusTimer
-                initialDurationSeconds={config?.timerDuration ?? 120 * 60}
-                initialBreakMinutes={config?.breakMinutes ?? 0}
-                textColor={c.text}
-                accentColor={c.accent}
-              />
-            )}
             {preset.timeNote && <Text style={[styles.timeNote, { color: c.text }]}>{preset.timeNote}</Text>}
             {/* more space above the buttons when there's no time text (Commute) */}
             <View style={[styles.buttons, { marginTop: preset.time ? 20 : 44 }]}>
@@ -672,17 +682,43 @@ export default function PresetModeScreen({ mode, config, onChangeSettings, onEnd
                   })
                 }
               >
-                <Text style={[styles.buttonText, { color: c.text }]}>CHANGE SETTINGS</Text>
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.75}
+                  style={[
+                    styles.buttonText,
+                    {
+                      color: c.text,
+                      fontSize: responsiveButtonFont,
+                    },
+                  ]}
+                >
+                  CHANGE SETTINGS
+                </Text>
               </Pressable>
               <Pressable
                 style={({ pressed }) => [styles.button, { backgroundColor: c.accent }, pressed && styles.pressed]}
                 onPress={() => {
                   void dndOffForMode();
-                  endModeSession(); // saves when the mode ended, for stats**
+                  endModeSession(); // saves when the mode ended, for stats
                   onEnd?.();
                 }}
               >
-                <Text style={[styles.buttonText, { color: c.text }]}>END MODE</Text>
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.75}
+                  style={[
+                    styles.buttonText,
+                    {
+                      color: c.text,
+                      fontSize: responsiveButtonFont,
+                    },
+                  ]}
+                >
+                  END MODE
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -704,7 +740,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: fonts.headingBold,
   },
-  scroll: { paddingHorizontal: 24 },
+  scroll: { paddingHorizontal: 12 },
   title: {
     fontSize: 50,
     lineHeight: 60,
@@ -714,9 +750,9 @@ const styles = StyleSheet.create({
   },
   panel: {
     marginTop: 16,
-    borderRadius: 30,
+    borderRadius: 26,
     paddingVertical: 24,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     ...shadows.inset,
   },
   list: { rowGap: 14 },
@@ -740,7 +776,7 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 18,
     marginTop: 10,
-    marginLeft: 46, // lines up with the label (box 32 + gap 14)**
+    marginLeft: 46, // lines up with the label (box 32 + gap 14)
     opacity: 0.8,
   },
   time: {
@@ -757,16 +793,20 @@ const styles = StyleSheet.create({
   },
   buttons: { alignItems: 'center', rowGap: 12 },
   button: {
+    alignSelf: 'center',
+    maxWidth: '100%',
     borderRadius: 30,
-    paddingVertical: 8,
-    paddingHorizontal: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
     ...shadows.raised,
   },
   buttonText: {
-    fontSize: 30,
-    lineHeight: 50,
+    fontSize: 28,
+    lineHeight: 38,
     fontFamily: fonts.headingBold,
-    letterSpacing: 0.5,
+    textAlign: 'center',
   },
   pressed: { transform: [{ scale: 0.97 }], opacity: 0.9 },
   musicSettingsPanel: {
