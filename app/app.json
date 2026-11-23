@@ -28,14 +28,23 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-  "expo-font",
-  "expo-asset",
-  "expo-notifications"
-  ],
-  "extra": {
-    "eas": {
-      "projectId": "88309257-5e0c-4290-a5db-1dcbb9c7f5ff"
+      "expo-font",
+      "expo-asset",
+      "expo-notifications",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": false,
+            "enableShrinkResourcesInReleaseBuilds": false
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "88309257-5e0c-4290-a5db-1dcbb9c7f5ff"
+      }
     }
-  }
   }
 }
