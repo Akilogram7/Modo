@@ -58,28 +58,29 @@ const ACCENT = {
 // XP comes from unlocked achievements (see src/achievements)
 
 const LEVEL_TITLES = [
-  { min: 1, name: 'Modo Newbie', emoji: '🐣' },
-  { min: 11, name: 'Modo Rookie', emoji: '🌱' },
-  { min: 21, name: 'Modo Explorer', emoji: '🧭' },
-  { min: 31, name: 'Modo Adventurer', emoji: '🎒' },
-  { min: 41, name: 'Modo Enthusiast', emoji: '✨' },
-  { min: 51, name: 'Modo Specialist', emoji: '🎯' },
-  { min: 61, name: 'Modo Expert', emoji: '🧠' },
-  { min: 71, name: 'Modo Mastermind', emoji: '🪄' },
-  { min: 81, name: 'Modo Legend', emoji: '👑' },
-  { min: 91, name: 'Modo Myth', emoji: '🌌' },
-  { min: 101, name: 'Modo Modo', emoji: '♾️' },
+  { min: 1, name: 'Modo Beginner', emoji: '🌱' },
+  { min: 6, name: 'Modo Starter', emoji: '🚀' },
+  { min: 11, name: 'Modo Explorer', emoji: '🧭' },
+  { min: 16, name: 'Modo Achiever', emoji: '⭐' },
+  { min: 21, name: 'Modo Pro', emoji: '⚡' },
+  { min: 26, name: 'Modo Expert', emoji: '🎯' },
+  { min: 31, name: 'Modo Champion', emoji: '🏆' },
+  { min: 36, name: 'Modo Master', emoji: '👑' },
+  { min: 41, name: 'Modo Legend', emoji: '💎' },
+  { min: 46, name: 'Modo Elite', emoji: '🔥' },
+  { min: 51, name: 'Modo Ultimate', emoji: '🌟' },
 ];
+
 
 function getLevelInfo(totalXP: number) {
   let level = 1;
   let xpRemaining = Math.max(0, Math.floor(totalXP));
-  let xpNeeded = 100;
+  let xpNeeded = 50;
 
   while (xpRemaining >= xpNeeded) {
     xpRemaining -= xpNeeded;
     level++;
-    xpNeeded = 100 + (level - 1) * 25;
+    xpNeeded = 50 + (level - 1) * 10;
   }
 
   const rank = [...LEVEL_TITLES]
@@ -113,49 +114,49 @@ function ModoXPCard() {
       }}
     >
 
-{/* ─────────────── RANK HEADER ─────────────── */}
-<View
-  style={{
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-    width: '100%',
-  }}
->
-  {/* RANK NAME + LEVEL */}
-  <View style={{ flexShrink: 1 }}>
-    <Text
-      style={{
-        fontFamily: fonts.headingBold,
-        fontSize: 22,
-        color: colors.heading,
-      }}
-    >
-      {rank.name}
-    </Text>
+      {/* ─────────────── RANK HEADER ─────────────── */}
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 15,
+          width: '100%',
+        }}
+      >
+        {/* RANK NAME + LEVEL */}
+        <View style={{ flexShrink: 1 }}>
+          <Text
+            style={{
+              fontFamily: fonts.headingBold,
+              fontSize: 22,
+              color: colors.heading,
+            }}
+          >
+            {rank.name}
+          </Text>
 
-    <Text
-      style={{
-        fontFamily: fonts.bodyBold,
-        fontSize: 15,
-        color: colors.otherText,
-      }}
-    >
-      Level {level}
-    </Text>
-  </View>
+          <Text
+            style={{
+              fontFamily: fonts.bodyBold,
+              fontSize: 15,
+              color: colors.otherText,
+            }}
+          >
+            Level {level}
+          </Text>
+        </View>
 
-  {/* RANK EMOJI */}
-  <Text
-    style={{
-      fontSize: 34,
-      marginLeft: 12,
-    }}
-  >
-    {rank.emoji}
-  </Text>
-</View>
+        {/* RANK EMOJI */}
+        <Text
+          style={{
+            fontSize: 34,
+            marginLeft: 12,
+          }}
+        >
+          {rank.emoji}
+        </Text>
+      </View>
       <View
         style={{
           flexDirection: 'row',
@@ -416,12 +417,12 @@ export default function ProfileScreen(_props: Props) {
               </View>
 
               <Text style={styles.ModoName}>{savedName || 'No name yet'}</Text>
-              
+
               {memberSince && (
                 <Text style={styles.ModoSub}>Member since {memberSince}</Text>
               )}
 
-            <ModoXPCard />
+              <ModoXPCard />
 
             </View>
             {/* Account info */}
@@ -543,7 +544,7 @@ export default function ProfileScreen(_props: Props) {
       >
         <Pressable style={styles.backdrop} onPress={() => setPickerOpen(false)}>
           {/* Inner Pressable stops taps on the sheet from closing it */}
-          <Pressable style={styles.sheet} onPress={() => {}}>
+          <Pressable style={styles.sheet} onPress={() => { }}>
             <Text style={styles.sheetTitle}>Choose your Modo</Text>
 
             {/* Background colour */}

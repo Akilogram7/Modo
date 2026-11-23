@@ -127,7 +127,7 @@ export default function AboutModoScreen({ onBack }: Props) {
           <View style={[styles.wideCard, { backgroundColor: '#FFF6F3' }]}>
             <Ionicons name="bulb" size={42} color="#F5B83D" />
             <View style={styles.wideText}>
-              <Text style={styles.wideTitle}>A Little Modo Fact</Text>
+              <Text style={styles.wideTitle}>Fun Fact!</Text>
               <Text style={styles.wideBody}>
                 Modo was inspired by the word 'Mode'! Since our app revolves around creating and
                 switching between different modes for everyday activities, we gave it a name of its

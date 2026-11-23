@@ -52,6 +52,10 @@ export default function CustomModeScreen({
   const following = hostName !== undefined;
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const responsiveButtonFont = Math.max(
+    18,
+    Math.min(28, width * 0.065)
+  );
   const characterImage = mode.character !== null ? CHARACTERS[mode.character] : undefined;
   const accent = darken(mode.color, 0.4);
   const textColor = '#FFFFFF';
@@ -446,7 +450,20 @@ export default function CustomModeScreen({
               onPress={onChangeSettings}
               accessibilityRole="button"
             >
-              <Text style={[styles.buttonText, { color: textColor }]}>CHANGE SETTINGS</Text>
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.75}
+                style={[
+                  styles.buttonText,
+                  {
+                    color: textColor,
+                    fontSize: responsiveButtonFont,
+                  },
+                ]}
+              >
+                CHANGE SETTINGS
+              </Text>
             </Pressable>
           )}
 
@@ -465,9 +482,15 @@ export default function CustomModeScreen({
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: 24 },
+  scroll: { paddingHorizontal: 12 },
   title: { fontSize: 44, lineHeight: 56, fontFamily: fonts.headingBold, textAlign: 'center', marginBottom: 8 },
-  panel: { marginTop: 16, borderRadius: 30, paddingVertical: 24, paddingHorizontal: 20, ...shadows.inset },
+  panel: {
+    marginTop: 16,
+    borderRadius: 26,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    ...shadows.inset,
+  },
   row: { flexDirection: 'row', alignItems: 'center' },
   box: { width: 32, height: 32, borderRadius: 8, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   rowText: { fontSize: 25, lineHeight: 32, fontFamily: fonts.headingBold, marginLeft: 14 },
@@ -482,7 +505,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   hostBannerText: { flex: 1, fontSize: 15, lineHeight: 20, fontFamily: fonts.bodyBold },
-  button: { alignSelf: 'center', marginTop: 30, borderRadius: 30, paddingVertical: 8, paddingHorizontal: 24, ...shadows.raised },
+  button: {
+    alignSelf: 'center',
+    maxWidth: '100%',
+    marginTop: 30,
+    borderRadius: 30,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.raised,
+  },
   buttonText: { fontSize: 30, lineHeight: 50, fontFamily: fonts.headingBold },
   spotifyButton: {
     backgroundColor: '#168344',
