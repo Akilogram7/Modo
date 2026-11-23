@@ -23,6 +23,7 @@ import { colors, gradientStops, gradientDirection, fonts, shadows, backgroundCol
 import GuestUpgradeCard from '../components/GuestUpgradeCard';
 import { useAchievements } from '../achievements/AchievementsProvider';
 import { FloatingCloud } from '../components/AuthBackground';
+import AboutModoScreen from './aboutModoScreen';
 
 // Modos users can pick as their profile picture.
 // The key is what gets saved on the account, so don't rename keys once people use them.
@@ -235,6 +236,7 @@ export default function ProfileScreen(_props: Props) {
   const [draftAvatar, setDraftAvatar] = useState(savedAvatar);
   const [draftColor, setDraftColor] = useState(savedColor);
   const [savingAvatar, setSavingAvatar] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
 
   const memberSince = user?.created_at
     ? new Date(user.created_at).toLocaleDateString(undefined, {
@@ -355,6 +357,11 @@ export default function ProfileScreen(_props: Props) {
     // The account is gone now, so just clear the login saved on this phone.
     // AuthGate then sends them back to the sign in screen.
     await supabase.auth.signOut({ scope: 'local' });
+  }
+
+  // The About Modo page opens inside the profile tab, so the tab bar stays visible
+  if (showAbout) {
+    return <AboutModoScreen onBack={() => setShowAbout(false)} />;
   }
 
   return (
@@ -480,6 +487,25 @@ export default function ProfileScreen(_props: Props) {
 
             {/* Guests: add an email and password to keep everything */}
             {isGuest && <GuestUpgradeCard />}
+
+            {/* About Modo */}
+            <Pressable
+              onPress={() => setShowAbout(true)}
+              style={({ pressed }) => [styles.aboutButton, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel="About Modo"
+            >
+              <View style={styles.aboutIcon}>
+                <Ionicons name="information" size={20} color="#fff" />
+              </View>
+              <Text style={styles.aboutText}>About Modo</Text>
+              <Ionicons
+                name="chevron-forward"
+                size={22}
+                color={colors.heading}
+                style={styles.aboutChevron}
+              />
+            </Pressable>
 
             {/* Log out */}
             <Pressable
@@ -750,6 +776,38 @@ const styles = StyleSheet.create({
     color: colors.otherText,
     fontSize: 16,
     fontFamily: fonts.headingBold,
+  },
+
+  aboutButton: {
+    marginTop: 18,
+    height: 58,
+    borderRadius: 22,
+    backgroundColor: '#E9D3F5',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    ...shadows.raised,
+  },
+
+  aboutIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#9B6BD6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  aboutText: {
+    fontSize: 20,
+    fontFamily: fonts.headingBold,
+    color: colors.heading,
+  },
+
+  aboutChevron: {
+    position: 'absolute',
+    right: 18,
   },
 
   logout: {
