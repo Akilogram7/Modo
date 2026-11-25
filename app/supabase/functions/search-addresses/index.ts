@@ -53,7 +53,7 @@ Deno.serve(async (request) => {
         });
 
         const response = await fetch(
-            `https://api.openrouteservice.org/geocode/autocomplete?${params.toString()}`,
+            `https://api.heigit.org/pelias/v1/autocomplete?${params.toString()}`,
             {
                 headers: {
                     Authorization: apiKey,

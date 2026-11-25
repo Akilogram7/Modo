@@ -63,7 +63,7 @@ Deno.serve(async (request) => {
         : 'driving-car';
 
     const response = await fetch(
-      `https://api.openrouteservice.org/v2/directions/${profile}/geojson`,
+      `https://api.heigit.org/openrouteservice/v2/directions/${profile}/geojson`,
       {
         method: 'POST',
         headers: {
@@ -81,23 +81,51 @@ Deno.serve(async (request) => {
       },
     );
 
-    const data = await response.json();
+    
+const responseText = await response.text();
+const contentType = response.headers.get('content-type');
 
+console.log('ORS response:', {
+  status: response.status,
+  statusText: response.statusText,
+  contentType,
+});
 
-    if (!response.ok) {
-      console.error('Routing provider error:', {
-        status: response.status,
-        message: data.error?.message ?? 'Unknown provider error',
-      });
+if (!response.ok) {
+  console.error('Routing provider error:', {
+    status: response.status,
+    contentType,
+    body: responseText.substring(0, 500),
+  });
 
-      return jsonResponse(
-        {
-          error: 'Unable to calculate route',
-          providerStatus: response.status,
-        },
-        502,
-      );
-    }
+  return jsonResponse(
+    {
+      error: 'Unable to calculate route',
+      providerStatus: response.status,
+    },
+    502,
+  );
+}
+
+let data;
+
+try {
+  data = JSON.parse(responseText);
+} catch {
+  console.error('ORS returned invalid JSON:', {
+    status: response.status,
+    contentType,
+    body: responseText.substring(0, 500),
+  });
+
+  return jsonResponse(
+    {
+      error: 'Routing provider returned an invalid response',
+      providerStatus: response.status,
+    },
+    502,
+  );
+}
 
 
     const feature = data.features?.[0];
